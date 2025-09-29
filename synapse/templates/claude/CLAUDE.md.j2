@@ -1,13 +1,19 @@
-# Synapse Agent Workflow System - test_project
+# {{{ project_name }}} - Synapse Agent Workflow System
 
-**Project**: test_project
+**Project**: {{{ project_name }}}
 **Synapse Version**: 1.0.0
 **Workflow Directory**: `.synapse/`
-**Initialized**: 2025-09-27 23:44:29
+**Initialized**: {{{ initialization_date }}}
 
 ## Overview
 
 This project uses the Synapse Agent Workflow System for sophisticated task coordination and agent-based development. Synapse provides structured workflow management through specialized Claude Code agents that collaborate to complete complex development tasks efficiently and with high quality.
+
+{% if user_context_slot %}
+## Project Context
+
+{{{ user_context_slot }}}
+{% endif %}
 
 ## Agent System
 
@@ -62,6 +68,11 @@ The agents operate in a coordinated workflow:
   - `/workflow pause/resume` - Control workflow execution
   - `/workflow task <id> <action>` - Manage individual tasks
 
+### Synapse Agent Commands
+{% for command in synapse_commands %}
+- **`{{ command.name }}`** - {{ command.description }}
+{% endfor %}
+
 ### Configuration and Validation
 - **`/validate`** - Validate project configuration and system integrity
   - `/validate --fix` - Automatically fix detected issues
@@ -75,69 +86,11 @@ The agents operate in a coordinated workflow:
   - `/agent <id> config` - View and modify agent settings
   - `/agent <id> rules` - Manage custom agent rules
 
-## Enhanced UX Features
+{% if user_instructions_slot %}
+## Custom Instructions
 
-### Template-Based CLAUDE.md Integration
-Synapse now provides seamless integration with existing Claude Code setups through intelligent template-based CLAUDE.md enhancement:
-
-- **🔄 Smart Content Preservation**: Automatically detects and preserves your existing project context, custom instructions, and guidelines
-- **📝 Template Integration**: Uses Jinja2-based templates to structure CLAUDE.md while maintaining user content in designated slots
-- **💾 Automatic Backup**: Creates timestamped backups (e.g., `CLAUDE.md_backup_20250929_143022.md`) before any modifications
-- **🔍 Conflict Detection**: Identifies potential conflicts with existing setup and provides clear resolution options
-
-**Key Benefits**:
-- No loss of existing Claude Code customizations
-- Clean, organized structure combining Synapse functionality with your content
-- Easy restoration from backups if needed
-- Template versioning for future upgrades
-
-### Intelligent Slash Command System
-Enhanced command system with conflict-aware installation and `/synapse:` prefixing:
-
-- **`/synapse:plan`** - Invoke DISPATCHER agent for task analysis and breakdown
-- **`/synapse:implement`** - Start DEV agent implementation workflow
-- **`/synapse:review`** - Trigger AUDITOR agent verification process
-- **`/synapse:dev`** - Direct communication with DEV agent
-- **`/synapse:audit`** - Direct communication with AUDITOR agent
-- **`/synapse:dispatch`** - Direct communication with DISPATCHER agent
-
-**Smart Conflict Resolution**:
-- Automatically detects existing slash commands
-- Uses `/synapse:` prefix to avoid naming collisions
-- Provides detailed conflict reports and resolution options
-- Preserves your existing command customizations
-
-### Enhanced CLI Experience
-Improved `synapse init` command with advanced template integration options:
-
-```bash
-# Standard initialization with template integration
-synapse init --project-name "My Project"
-
-# Initialize with custom settings
-synapse init --project-name "My Project" \
-  --workflow-dir ".custom-synapse" \
-  --template-integration=true \
-  --preserve-content=true \
-  --detect-conflicts=true
-
-# Force reinitialize with backup
-synapse init --force --project-name "My Project"
-```
-
-**New Features**:
-- **Template Integration Control**: Enable/disable CLAUDE.md template integration
-- **Content Preservation**: Maintain existing user content during setup
-- **Conflict Detection**: Automatically identify and resolve command conflicts
-- **Performance Optimized**: <500ms template integration, <1s command registration
-- **Backup Management**: Automatic backup creation and restoration capabilities
-
-### Performance & Reliability
-- **⚡ Fast Template Processing**: <500ms for typical CLAUDE.md integration
-- **🚀 Quick Command Registration**: <1s for all 6 slash commands
-- **🔧 Robust Error Handling**: Graceful degradation with clear error messages
-- **📊 Comprehensive Testing**: 100+ tests covering all integration scenarios
-- **🔄 Cache Optimization**: LRU caching for template parsing and content analysis
+{{{ user_instructions_slot }}}
+{% endif %}
 
 ## Workflow State Files
 
@@ -156,6 +109,9 @@ synapse init --force --project-name "My Project"
 - **`.claude/commands/workflow.md`** - Workflow management commands
 - **`.claude/commands/validate.md`** - Validation system commands
 - **`.claude/commands/agent.md`** - Agent management commands
+{% for command in synapse_commands %}
+- **`.claude/commands/{{ command.file_name }}`** - {{ command.description }}
+{% endfor %}
 
 ## Current Workflow Status
 
@@ -174,10 +130,16 @@ This will show you:
 ## Getting Started
 
 ### For New Tasks
-1. Describe your requirements clearly to DISPATCHER
+1. Describe your requirements clearly to DISPATCHER using `/synapse:plan`
 2. DISPATCHER will break down the work into specific tasks
-3. Monitor progress with `/status` and `/workflow log`
-4. Use `/validate` to ensure system health
+3. Use `/synapse:implement` to execute development tasks with DEV agent
+4. Use `/synapse:review` to verify quality with AUDITOR agent
+5. Monitor progress with `/status` and `/workflow log`
+
+### Direct Agent Communication
+- **`/synapse:dev`** - Communicate directly with DEV agent for implementation questions
+- **`/synapse:audit`** - Request specific reviews or quality checks from AUDITOR
+- **`/synapse:dispatch`** - Direct workflow coordination and task management
 
 ### For Ongoing Work
 1. Check current status with `/status`
@@ -190,6 +152,12 @@ This will show you:
 2. Use `/workflow log --level ERROR` to find recent errors
 3. Check individual agent status with `/agent <id> status`
 4. Reset workflow if needed with `/workflow reset`
+
+{% if user_guidelines_slot %}
+## Project Guidelines
+
+{{{ user_guidelines_slot }}}
+{% endif %}
 
 ## Task Log Format
 
@@ -260,6 +228,12 @@ Synapse integrates seamlessly with your existing development workflow:
 - **Agent conflicts**: Disable problematic agents with `/agent <id> disable`
 - **System recovery**: Reinitialize with `synapse init --force`
 
+{% if user_metadata_slot %}
+## Additional Information
+
+{{{ user_metadata_slot }}}
+{% endif %}
+
 ---
 
-**Next Steps**: Start by checking your current workflow status with `/status` and explore the available commands to familiarize yourself with the system capabilities.
+**Next Steps**: Start by checking your current workflow status with `/status` and explore the available Synapse commands to coordinate your development workflow efficiently.

@@ -9,6 +9,7 @@ from typing import Any
 
 class TaskType(Enum):
     """Types of tasks in the workflow."""
+
     CODING = "CODING"
     REFACTORING = "REFACTORING"
     TESTING = "TESTING"
@@ -18,6 +19,7 @@ class TaskType(Enum):
 
 class TaskStatus(Enum):
     """Status of a task in the workflow."""
+
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
@@ -27,6 +29,7 @@ class TaskStatus(Enum):
 
 class SubtaskStatus(Enum):
     """Status of a subtask."""
+
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
@@ -35,6 +38,7 @@ class SubtaskStatus(Enum):
 
 class WorkflowStatus(Enum):
     """Status of the overall workflow."""
+
     IDLE = "IDLE"
     ACTIVE = "ACTIVE"
     PAUSED = "PAUSED"
@@ -44,6 +48,7 @@ class WorkflowStatus(Enum):
 
 class VerificationStatus(Enum):
     """Status of verification reports."""
+
     PASSED = "PASSED"
     FAILED = "FAILED"
     PARTIAL = "PARTIAL"
@@ -52,6 +57,7 @@ class VerificationStatus(Enum):
 @dataclass
 class AgentTemplate:
     """Template for agent behavior that gets scaffolded into projects."""
+
     id: str
     name: str
     description: str
@@ -73,6 +79,7 @@ class AgentTemplate:
 @dataclass
 class Subtask:
     """Granular breakdown of a Task."""
+
     id: str
     parent_task_id: str
     description: str
@@ -94,6 +101,7 @@ class Subtask:
 @dataclass
 class Task:
     """Unit of work within the workflow."""
+
     id: str
     description: str
     type: TaskType
@@ -120,7 +128,7 @@ class Task:
             parent_task_id=self.id,
             description=description,
             status=SubtaskStatus.PENDING,
-            order=order
+            order=order,
         )
         self.subtasks.append(subtask)
         self.updated_at = datetime.now()
@@ -138,7 +146,7 @@ class Task:
             ],
             TaskStatus.NEEDS_REVISION: [TaskStatus.IN_PROGRESS, TaskStatus.FAILED],
             TaskStatus.COMPLETED: [],  # Terminal state
-            TaskStatus.FAILED: [TaskStatus.IN_PROGRESS]  # Can retry
+            TaskStatus.FAILED: [TaskStatus.IN_PROGRESS],  # Can retry
         }
 
         if new_status not in valid_transitions.get(self.status, []):
@@ -151,6 +159,7 @@ class Task:
 @dataclass
 class WorkflowState:
     """Current state of the project's workflow execution."""
+
     workflow_id: str
     status: WorkflowStatus
     current_task_id: str | None = None
@@ -172,7 +181,7 @@ class WorkflowState:
             ],
             WorkflowStatus.PAUSED: [WorkflowStatus.ACTIVE, WorkflowStatus.ERROR],
             WorkflowStatus.COMPLETED: [],  # Terminal state
-            WorkflowStatus.ERROR: [WorkflowStatus.ACTIVE, WorkflowStatus.IDLE]  # Can recover
+            WorkflowStatus.ERROR: [WorkflowStatus.ACTIVE, WorkflowStatus.IDLE],  # Can recover
         }
 
         if new_status not in valid_transitions.get(self.status, []):
@@ -226,6 +235,7 @@ class WorkflowState:
 @dataclass
 class TaskLogEntry:
     """Individual entry in the workflow task log."""
+
     timestamp: datetime
     agent_id: str
     action: str
@@ -246,6 +256,7 @@ class TaskLogEntry:
 @dataclass
 class Finding:
     """Individual verification result within a report."""
+
     subtask_id: str
     criterion: str
     passed: bool
@@ -262,6 +273,7 @@ class Finding:
 @dataclass
 class VerificationReport:
     """Output from AUDITOR agent after verification."""
+
     id: str
     task_id: str
     auditor_id: str
@@ -284,10 +296,7 @@ class VerificationReport:
     def add_finding(self, subtask_id: str, criterion: str, passed: bool, details: str) -> Finding:
         """Add a new finding to this report."""
         finding = Finding(
-            subtask_id=subtask_id,
-            criterion=criterion,
-            passed=passed,
-            details=details
+            subtask_id=subtask_id, criterion=criterion, passed=passed, details=details
         )
         self.findings.append(finding)
         return finding

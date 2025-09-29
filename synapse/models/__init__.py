@@ -1,5 +1,14 @@
 """Models module for Synapse agent workflow system."""
 
+from .command import (
+    AgentType,
+    CommandInfo,
+    CommandRegistry,
+    ConflictInfo,
+    ConflictResolution,
+    ConflictType,
+    SlashCommand,
+)
 from .project import AgentConfig, InitResult, ProjectConfig, ValidationResult
 from .task import (
     AgentTemplate,
@@ -15,25 +24,43 @@ from .task import (
     WorkflowState,
     WorkflowStatus,
 )
+from .template import (
+    ContentSlot,
+    IntegrationStrategy,
+    IntegrationType,
+    PreservationRule,
+    SlotType,
+    TemplateConfig,
+)
 
 __all__ = [
-    # Project models
     "AgentConfig",
-    "ProjectConfig",
-    "InitResult",
-    "ValidationResult",
-    # Task models
     "AgentTemplate",
-    "Task",
-    "Subtask",
-    "WorkflowState",
-    "TaskLogEntry",
+    "AgentType",
+    "CommandInfo",
+    "CommandRegistry",
+    "ConflictInfo",
+    "ConflictResolution",
+    "ConflictType",
+    "ContentSlot",
     "Finding",
-    "VerificationReport",
-    # Enums
-    "TaskType",
-    "TaskStatus",
+    "InitResult",
+    "IntegrationStrategy",
+    "IntegrationType",
+    "PreservationRule",
+    "ProjectConfig",
+    "SlashCommand",
+    "SlotType",
+    "Subtask",
     "SubtaskStatus",
-    "WorkflowStatus",
+    "Task",
+    "TaskLogEntry",
+    "TaskStatus",
+    "TaskType",
+    "TemplateConfig",
+    "ValidationResult",
+    "VerificationReport",
     "VerificationStatus",
+    "WorkflowState",
+    "WorkflowStatus",
 ]

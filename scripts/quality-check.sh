@@ -6,15 +6,19 @@ set -e
 echo "🔍 Running quality checks..."
 
 echo ""
-echo "1. 🎨 Code formatting and linting (ruff)..."
-ruff check .
+echo "1. 🎨 Code formatting (black)..."
+black synapse/
 
 echo ""
-echo "2. 🔒 Type checking (mypy)..."
+echo "2. 🔧 Code linting (ruff)..."
+ruff check . --fix
+
+echo ""
+echo "3. 🔒 Type checking (mypy)..."
 mypy synapse/
 
 echo ""
-echo "3. 🧪 Running tests..."
+echo "4. 🧪 Running tests..."
 pytest --tb=short
 
 echo ""

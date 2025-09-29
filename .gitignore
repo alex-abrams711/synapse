@@ -311,3 +311,7 @@ test_results/
 docs/_build/
 docs/generated/
 *.rst.txt
+
+# Test and debug scripts (development only)
+scripts/test-*.sh
+scripts/debug-*.sh

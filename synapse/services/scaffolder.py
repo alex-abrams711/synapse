@@ -9,6 +9,9 @@ import yaml
 
 from synapse.models.project import AgentConfig, InitResult, ProjectConfig
 from synapse.models.task import WorkflowState, WorkflowStatus
+from synapse.models.template import TemplateConfig
+from synapse.services.integrator import TemplateIntegrator
+from synapse.utils.conflicts import detect_command_conflicts
 
 
 class ProjectScaffolder:
@@ -17,18 +20,20 @@ class ProjectScaffolder:
     def __init__(self) -> None:
         """Initialize the project scaffolder."""
         self.template_dir = Path(__file__).parent.parent / "templates"
+        self.template_integrator = TemplateIntegrator()
 
     def create_project_structure(
         self,
         project_path: Path,
         config: ProjectConfig,
-        force: bool = False
+        force: bool = False,
+        template_integration: bool = True,
+        preserve_content: bool = True,
+        detect_conflicts: bool = True,
     ) -> InitResult:
         """Create complete project structure with templates and configuration."""
         result = InitResult(
-            success=False,
-            project_name=config.project_name,
-            workflow_dir=config.workflow_dir
+            success=False, project_name=config.project_name, workflow_dir=config.workflow_dir
         )
 
         try:
@@ -49,8 +54,18 @@ class ProjectScaffolder:
             # Create command templates
             self._create_command_templates(project_path, config, result)
 
-            # Create main CLAUDE.md context file
-            self._create_claude_context(project_path, config, result)
+            # Handle CLAUDE.md with template integration
+            if template_integration and config.template_integration_enabled:
+                self._create_claude_with_template_integration(
+                    project_path, config, result, preserve_content
+                )
+            else:
+                # Create main CLAUDE.md context file (existing functionality)
+                self._create_claude_context(project_path, config, result)
+
+            # Detect and handle command conflicts if enabled
+            if detect_conflicts and config.auto_detect_conflicts:
+                self._handle_command_conflicts(project_path, config, result)
 
             # Create configuration files
             self._create_configuration_files(project_path, config, result)
@@ -69,6 +84,81 @@ class ProjectScaffolder:
 
         return result
 
+    def _create_claude_with_template_integration(
+        self, project_path: Path, config: ProjectConfig, result: InitResult, preserve_content: bool
+    ) -> None:
+        """Create CLAUDE.md using template integration system."""
+        claude_file_path = project_path / "CLAUDE.md"
+
+        try:
+            # Create template config with project-specific content
+            template_config = TemplateConfig(
+                template_version=config.claude_md_template_version,
+                user_content_slots={
+                    "project_name": config.project_name,
+                    "user_context_slot": "",
+                    "user_instructions_slot": "",
+                    "user_guidelines_slot": "",
+                    "user_metadata_slot": "",
+                },
+            )
+
+            # Set template config in project config
+            config.set_template_config(template_config)
+
+            # Use template integrator to create CLAUDE.md
+            integration_result = self.template_integrator.integrate_template(
+                str(claude_file_path),
+                template_config,
+                integration_strategy="template_replacement",
+                create_backup=config.backup_on_integration,
+            )
+
+            if integration_result.success:
+                result.add_file_created("CLAUDE.md")
+                result.set_template_integration_performed(integration_result.backup_file)
+                result.set_template_config_created()
+
+                if integration_result.preserved_content:
+                    slot_count = len(integration_result.preserved_content)
+                    result.add_warning(f"Preserved {slot_count} content slots")
+
+            else:
+                result.add_warning("Template integration failed, falling back to basic CLAUDE.md")
+                self._create_claude_context(project_path, config, result)
+
+        except Exception as e:
+            result.add_warning(f"Template integration error: {e}, falling back to basic CLAUDE.md")
+            self._create_claude_context(project_path, config, result)
+
+    def _handle_command_conflicts(
+        self, project_path: Path, config: ProjectConfig, result: InitResult
+    ) -> None:
+        """Detect and handle command conflicts during project creation."""
+        commands_dir = project_path / ".claude" / "commands"
+
+        if not commands_dir.exists():
+            return
+
+        try:
+            # Get list of synapse commands that will be created
+            synapse_commands = ["plan", "implement", "review", "dev", "audit", "dispatch"]
+
+            # Detect conflicts
+            conflict_result = detect_command_conflicts(synapse_commands, str(commands_dir))
+
+            if conflict_result.conflicts:
+                for conflict in conflict_result.conflicts:
+                    conflict_msg = f"Command conflict detected: {conflict.command_name}"
+                    if conflict.existing_source:
+                        conflict_msg += f" (existing: {conflict.existing_source})"
+                    result.add_conflict_detected(conflict_msg)
+
+                result.add_warning(f"Detected {len(conflict_result.conflicts)} command conflicts")
+
+        except Exception as e:
+            result.add_warning(f"Error during conflict detection: {e}")
+
     def _create_directories(
         self, project_path: Path, config: ProjectConfig, result: InitResult
     ) -> None:
@@ -77,7 +167,7 @@ class ProjectScaffolder:
             project_path / ".claude",
             project_path / ".claude" / "agents",
             project_path / ".claude" / "commands",
-            project_path / config.workflow_dir
+            project_path / config.workflow_dir,
         ]
 
         for directory in directories:
@@ -97,7 +187,7 @@ class ProjectScaffolder:
                 result.add_warning(f"Template not found: {template_path}")
                 continue
 
-            with open(template_path, encoding='utf-8') as f:
+            with open(template_path, encoding="utf-8") as f:
                 template_content = f.read()
 
             # Replace placeholders
@@ -105,7 +195,7 @@ class ProjectScaffolder:
 
             # Write agent file
             agent_file = project_path / ".claude" / "agents" / f"{agent_id}.md"
-            with open(agent_file, 'w', encoding='utf-8') as f:
+            with open(agent_file, "w", encoding="utf-8") as f:
                 f.write(content)
 
             result.add_agent_created(agent_id)
@@ -124,7 +214,7 @@ class ProjectScaffolder:
                 result.add_warning(f"Command template not found: {template_path}")
                 continue
 
-            with open(template_path, encoding='utf-8') as f:
+            with open(template_path, encoding="utf-8") as f:
                 template_content = f.read()
 
             # Replace placeholders
@@ -132,7 +222,7 @@ class ProjectScaffolder:
 
             # Write command file
             command_file = project_path / ".claude" / "commands" / f"{command_name}.md"
-            with open(command_file, 'w', encoding='utf-8') as f:
+            with open(command_file, "w", encoding="utf-8") as f:
                 f.write(content)
 
             result.add_command_created(command_name)
@@ -148,7 +238,7 @@ class ProjectScaffolder:
             result.add_warning(f"CLAUDE.md template not found: {template_path}")
             return
 
-        with open(template_path, encoding='utf-8') as f:
+        with open(template_path, encoding="utf-8") as f:
             template_content = f.read()
 
         # Replace placeholders
@@ -156,7 +246,7 @@ class ProjectScaffolder:
 
         # Write CLAUDE.md file
         claude_file = project_path / "CLAUDE.md"
-        with open(claude_file, 'w', encoding='utf-8') as f:
+        with open(claude_file, "w", encoding="utf-8") as f:
             f.write(content)
 
         result.add_file_created("CLAUDE.md")
@@ -171,7 +261,7 @@ class ProjectScaffolder:
             result.add_warning(f"Config template not found: {template_path}")
             return
 
-        with open(template_path, encoding='utf-8') as f:
+        with open(template_path, encoding="utf-8") as f:
             template_content = f.read()
 
         # Replace placeholders
@@ -179,7 +269,7 @@ class ProjectScaffolder:
 
         # Write config file
         config_file = project_path / config.workflow_dir / "config.yaml"
-        with open(config_file, 'w', encoding='utf-8') as f:
+        with open(config_file, "w", encoding="utf-8") as f:
             f.write(content)
 
         result.add_file_created(str(config_file.relative_to(project_path)))
@@ -194,7 +284,7 @@ class ProjectScaffolder:
             result.add_warning(f"Task log template not found: {template_path}")
             return
 
-        with open(template_path, encoding='utf-8') as f:
+        with open(template_path, encoding="utf-8") as f:
             template_content = f.read()
 
         # Add workflow_id to replacements
@@ -206,7 +296,7 @@ class ProjectScaffolder:
 
         # Write task log file
         log_file = project_path / config.workflow_dir / config.task_log_path
-        with open(log_file, 'w', encoding='utf-8') as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write(content)
 
         result.add_file_created(str(log_file.relative_to(project_path)))
@@ -215,10 +305,7 @@ class ProjectScaffolder:
         self, project_path: Path, config: ProjectConfig, result: InitResult
     ) -> None:
         """Create initial workflow state file."""
-        workflow_state = WorkflowState(
-            workflow_id=str(uuid.uuid4()),
-            status=WorkflowStatus.IDLE
-        )
+        workflow_state = WorkflowState(workflow_id=str(uuid.uuid4()), status=WorkflowStatus.IDLE)
 
         state_data = {
             "workflow_id": workflow_state.workflow_id,
@@ -228,15 +315,14 @@ class ProjectScaffolder:
             "completed_tasks": workflow_state.completed_tasks,
             "failed_tasks": workflow_state.failed_tasks,
             "created_at": workflow_state.created_at.isoformat(),
-            "last_activity": workflow_state.last_activity.isoformat()
+            "last_activity": workflow_state.last_activity.isoformat(),
         }
 
         state_file = project_path / config.workflow_dir / "workflow_state.json"
-        with open(state_file, 'w', encoding='utf-8') as f:
+        with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state_data, f, indent=2)
 
         result.add_file_created(str(state_file.relative_to(project_path)))
-
 
     def _replace_placeholders(self, content: str, config: ProjectConfig) -> str:
         """Replace template placeholders with actual values."""
@@ -244,7 +330,7 @@ class ProjectScaffolder:
             "{{project_name}}": config.project_name,
             "{{synapse_version}}": config.synapse_version,
             "{{workflow_dir}}": config.workflow_dir,
-            "{{created_at}}": config.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            "{{created_at}}": config.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         result = content
@@ -263,7 +349,7 @@ class ProjectScaffolder:
             (project_path / "package.json", "name"),
             (project_path / "pyproject.toml", "name"),
             (project_path / "setup.py", None),  # More complex parsing needed
-            (project_path / "Cargo.toml", "name")
+            (project_path / "Cargo.toml", "name"),
         ]
 
         for config_file, name_key in config_files:
@@ -271,28 +357,30 @@ class ProjectScaffolder:
                 try:
                     if config_file.suffix == ".json":
                         import json
-                        with open(config_file, encoding='utf-8') as f:
+
+                        with open(config_file, encoding="utf-8") as f:
                             data = json.load(f)
                         if name_key and name_key in data and isinstance(data[name_key], str):
                             return str(data[name_key])
                     elif config_file.suffix == ".toml":
                         # Simple TOML parsing for name field
-                        with open(config_file, encoding='utf-8') as f:
+                        with open(config_file, encoding="utf-8") as f:
                             content = f.read()
                         # Look for name = "project_name" pattern
                         import re
+
                         match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', content)
                         if match:
                             return match.group(1)
-                except Exception:
+                except (FileNotFoundError, OSError, ValueError):
                     # If parsing fails, continue with directory name
                     pass
 
         # Clean up directory name
         if project_name:
             # Remove common suffixes and clean up
-            project_name = project_name.replace('-', ' ').replace('_', ' ')
-            project_name = ' '.join(word.capitalize() for word in project_name.split())
+            project_name = project_name.replace("-", " ").replace("_", " ")
+            project_name = " ".join(word.capitalize() for word in project_name.split())
 
         return project_name or "Synapse Project"
 
@@ -313,7 +401,7 @@ class ProjectScaffolder:
             return None
 
         try:
-            with open(config_file, encoding='utf-8') as f:
+            with open(config_file, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             # Create ProjectConfig from loaded data
@@ -327,7 +415,13 @@ class ProjectScaffolder:
                 ),
                 last_updated=datetime.fromisoformat(
                     data.get("last_updated", datetime.now().isoformat())
-                )
+                ),
+                # Template integration settings (with defaults for backward compatibility)
+                template_integration_enabled=data.get("template_integration_enabled", True),
+                claude_md_template_version=data.get("claude_md_template_version", "1.0.0"),
+                preserve_user_content=data.get("preserve_user_content", True),
+                auto_detect_conflicts=data.get("auto_detect_conflicts", True),
+                backup_on_integration=data.get("backup_on_integration", True),
             )
 
             # Load agent configurations
@@ -340,9 +434,23 @@ class ProjectScaffolder:
                             "context_file", f".claude/agents/{agent_id}.md"
                         ),
                         custom_prompt=agent_data.get("custom_prompt"),
-                        custom_rules=agent_data.get("custom_rules", [])
+                        custom_rules=agent_data.get("custom_rules", []),
                     )
                     config.agents[agent_id] = agent_config
+
+            # Load template configuration if available
+            if data.get("template_config"):
+                template_data = data["template_config"]
+                template_config = TemplateConfig(
+                    template_version=template_data.get("template_version", "1.0.0"),
+                    user_content_slots=template_data.get("user_content_slots", {}),
+                    backup_created=template_data.get("backup_created", False),
+                    integration_date=datetime.fromisoformat(template_data["integration_date"])
+                    if template_data.get("integration_date")
+                    else None,
+                    original_file_hash=template_data.get("original_file_hash"),
+                )
+                config.set_template_config(template_config)
 
             return config
 
