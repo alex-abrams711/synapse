@@ -205,9 +205,23 @@ class ProjectScaffolder:
         self, project_path: Path, config: ProjectConfig, result: InitResult
     ) -> None:
         """Create command template files from templates."""
-        commands = ["status", "workflow", "validate", "agent"]
+        # Basic workflow commands
+        basic_commands = ["status", "workflow", "validate", "agent"]
 
-        for command_name in commands:
+        # Enhanced synapse-prefixed agent commands
+        synapse_commands = [
+            "synapse-plan",      # /synapse:plan - DISPATCHER task analysis
+            "synapse-implement", # /synapse:implement - DEV implementation workflow
+            "synapse-review",    # /synapse:review - AUDITOR verification
+            "synapse-dev",       # /synapse:dev - Direct DEV communication
+            "synapse-audit",     # /synapse:audit - Direct AUDITOR communication
+            "synapse-dispatch"   # /synapse:dispatch - Direct DISPATCHER communication
+        ]
+
+        # Combine all commands
+        all_commands = basic_commands + synapse_commands
+
+        for command_name in all_commands:
             # Read template
             template_path = self.template_dir / "claude" / "commands" / f"{command_name}.md"
             if not template_path.exists():

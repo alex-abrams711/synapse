@@ -75,6 +75,22 @@ The agents operate in a coordinated workflow:
   - `/agent <id> config` - View and modify agent settings
   - `/agent <id> rules` - Manage custom agent rules
 
+### Enhanced Agent Commands
+Advanced workflow commands with conflict-aware installation and `/synapse:` prefixing:
+
+- **`/synapse:plan`** - Invoke DISPATCHER agent for task analysis and breakdown
+- **`/synapse:implement`** - Start DEV agent implementation workflow
+- **`/synapse:review`** - Trigger AUDITOR agent verification process
+- **`/synapse:dev`** - Direct communication with DEV agent
+- **`/synapse:audit`** - Direct communication with AUDITOR agent
+- **`/synapse:dispatch`** - Direct communication with DISPATCHER agent
+
+**Smart Conflict Resolution**:
+- Automatically detects existing slash commands
+- Uses `/synapse:` prefix to avoid naming collisions
+- Provides detailed conflict reports and resolution options
+- Preserves your existing command customizations
+
 ## Workflow State Files
 
 ### Core Workflow Data

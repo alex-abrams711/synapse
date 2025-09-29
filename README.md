@@ -16,9 +16,24 @@ Synapse transforms Claude Code into a multi-agent development environment where 
 
 ### Installation
 
+**For Development/Local Use:**
+```bash
+# Install from local repository in development mode
+cd /path/to/synapse
+pip install -e .
+```
+
+**From GitHub (when published):**
+```bash
+pip install git+https://github.com/alex-abrams711/synapse.git@002-improve-synapse-workflow
+```
+
+**From PyPI (coming soon):**
 ```bash
 pip install synapse-workflow
 ```
+
+> **Note**: The package is currently in development and not yet published to PyPI. Use the development installation method above.
 
 ### Initialize a Project
 
@@ -201,6 +216,37 @@ pytest tests/unit/test_templates/test_agent_templates.py
 # Run tests matching pattern
 pytest -k "test_init"
 ```
+
+#### Integration Testing
+
+Synapse includes a comprehensive integration test that validates the complete initialization workflow:
+
+```bash
+# Quick integration test
+./scripts/test-integration.sh
+
+# Integration test with verbose output
+./scripts/test-integration.sh --verbose
+
+# Keep test project for inspection
+./scripts/test-integration.sh --keep-project
+
+# Custom project name
+./scripts/test-integration.sh --project-name "My Integration Test"
+
+# Python script directly
+python scripts/test_integration.py --help
+```
+
+The integration test:
+- ✅ Creates a temporary test project directory
+- ✅ Runs `synapse init` with full configuration options
+- ✅ Verifies all 11 expected files are created (agents, commands, workflow artifacts)
+- ✅ Validates configuration file syntax and content
+- ✅ Generates comprehensive success/failure reports
+- ✅ Automatically cleans up (unless `--keep-project` is used)
+
+This test is ideal for verifying that Synapse works correctly across different environments and for regression testing during development.
 
 #### Building and Distribution
 

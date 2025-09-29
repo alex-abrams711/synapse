@@ -6,10 +6,12 @@
       "Bash(pytest:*)",
       "Bash(mypy:*)",
       "Bash(synapse:*)",
+      "Bash(python:*)",
       "mcp__sequentialthinking__sequentialthinking",
       "Bash(.specify/scripts/bash/setup-plan.sh:*)",
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
-      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)"
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(./scripts/quality-check.sh:*)"
     ],
     "deny": [],
     "ask": []
