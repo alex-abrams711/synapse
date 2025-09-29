@@ -257,8 +257,6 @@ GitHub.sublime-settings
 # Note: These are generated files from testing the CLI, not source files
 # The template source files in synapse/templates/ should be committed
 .synapse/
-.claude/
-/CLAUDE.md  # Root level CLAUDE.md from testing (not the template)
 
 # Specify template system files (development only)
 .specify/

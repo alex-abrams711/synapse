@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff check:*)",
+      "Bash(pip install:*)",
+      "Bash(pytest:*)",
+      "Bash(mypy:*)",
+      "Bash(synapse:*)",
+      "mcp__sequentialthinking__sequentialthinking",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
