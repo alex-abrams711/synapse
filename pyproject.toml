@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapse-cli"
+version = "0.3.0"
+description = "AI Workflow System for Claude Code Integration"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Alex Abrams", email = "alex@example.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.scripts]
+synapse = "synapse_cli:main"
+
+[project.urls]
+Homepage = "https://github.com/alex-abrams711/synapse"
+Repository = "https://github.com/alex-abrams711/synapse"
+
+[tool.setuptools]
+packages = ["synapse_cli"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+synapse_cli = [
+    "resources/**/*",
+]
