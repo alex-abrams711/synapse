@@ -1,5 +1,0 @@
-include README.md
-include CONTRIBUTING.md
-include CLAUDE.md
-recursive-include synapse/templates *.md *.yaml *.json
-recursive-include scripts *.sh
