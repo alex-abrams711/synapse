@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/user-prompt-reminder.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/pre-tool-use.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/post-tool-use.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/verification-complete.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -19,12 +19,14 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual environments
 venv/
+.venv/
+.venv*/
 ENV/
 env/
-.venv
 
 # IDE
 .vscode/
@@ -37,15 +39,27 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
-.tox/
-
-# Distribution
-*.whl
-
-# Synapse runtime
-.synapse/
-.claude/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Synapse-specific
+.synapse/
+backup*/
+*backup/
+*.bak
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Test artifacts
+test-*/
+*-test/

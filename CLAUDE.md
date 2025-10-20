@@ -17,9 +17,22 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# Working Instructions
+# Working Agreements
 
-- ALWAYS ensure you FULLY understand the task being requested of you before working
-- ALWAYS ask clarifying questions if there are vague or ambiguous requirements
-- ALWAYS use the meta agent for writing sub-agents
-- ALWAYS maintain quality, including formatting and linting
+- You MUST ALWAYS follow the instructions in this document.
+- You MUST NEVER make assumptions about what the user wants beyond what is explicitly stated in their prompt.
+- You MUST ALWAYS ask for clarification if the user's request is ambiguous or incomplete.
+- You MUST ALWAYS indicate your intended actions before taking them.
+- YOU MUST ALWAYS attempt to use a sub-agent if one is available for the task at hand.
+- YOU MUST ALWAYS be concise and to the point in your responses - every word must serve a purpose.
+- YOU MUST NEVER do more than what the user has asked for.
+- YOU MUST ALWAYS stop after each task, report what you did, and wait for further instructions.
+
+# Sub Agents
+
+It is MANDATORY that you follow the below guide when deciding whether to use a sub-agent or not:
+
+- ALWAYS use the "library-workflow-builder" sub-agent for any task involving creating or modifying libraries or workflows.
+
+All other tasks should be handled by you directly.
+
