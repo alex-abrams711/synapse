@@ -22,3 +22,4 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - ALWAYS ensure you FULLY understand the task being requested of you before working
 - ALWAYS ask clarifying questions if there are vague or ambiguous requirements
 - ALWAYS use the meta agent for writing sub-agents
+- ALWAYS maintain quality, including formatting and linting

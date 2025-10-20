@@ -143,19 +143,19 @@ def main():
     )
 
     # Workflow list
-    workflow_list_parser = workflow_subparsers.add_parser(
+    workflow_subparsers.add_parser(
         "list",
         help="List available workflows"
     )
 
     # Workflow status
-    workflow_status_parser = workflow_subparsers.add_parser(
+    workflow_subparsers.add_parser(
         "status",
         help="Show active workflow status"
     )
 
     # Workflow remove
-    workflow_remove_parser = workflow_subparsers.add_parser(
+    workflow_subparsers.add_parser(
         "remove",
         help="Remove active workflow"
     )
@@ -257,22 +257,22 @@ def handle_init(args):
 
             if sense_source.exists():
                 shutil.copy2(sense_source, sense_dest)
-                print(f"✓ Copied sense command to .synapse/commands/synapse/")
+                print("✓ Copied sense command to .synapse/commands/synapse/")
             else:
-                print(f"Warning: sense.md not found in resources", file=sys.stderr)
+                print("Warning: sense.md not found in resources", file=sys.stderr)
 
         except FileNotFoundError as e:
             print(f"Warning: Could not copy sense command: {e}", file=sys.stderr)
 
         # Success message
-        print(f"\n✓ Synapse initialized successfully!")
-        print(f"\nConfiguration created:")
-        print(f"  - .synapse/config.json")
-        print(f"  - .synapse/commands/synapse/sense.md")
-        print(f"\nNext steps:")
-        print(f"  1. Apply a workflow: synapse workflow feature-planning")
-        print(f"  2. Or: synapse workflow feature-implementation")
-        print(f"  3. List workflows: synapse workflow list")
+        print("\n✓ Synapse initialized successfully!")
+        print("\nConfiguration created:")
+        print("  - .synapse/config.json")
+        print("  - .synapse/commands/synapse/sense.md")
+        print("\nNext steps:")
+        print("  1. Apply a workflow: synapse workflow feature-planning")
+        print("  2. Or: synapse workflow feature-implementation")
+        print("  3. List workflows: synapse workflow list")
 
         return EXIT_SUCCESS
 
