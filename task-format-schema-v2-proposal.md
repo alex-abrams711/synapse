@@ -33,10 +33,10 @@ The current experimental implementation (in `experiments/`) proves the concept w
 - [x] **T011: Enhance error reporting** - Provide actionable feedback when schema generation fails
 
 ### Phase 4: Hook Integration
-- [ ] **T012: Update pre-tool-use.py to use v2 schema** - Integrate TaskSchemaParser into pre-tool-use hook
-- [ ] **T013: Update post-tool-use.py to use v2 schema** - Integrate TaskSchemaParser into post-tool-use hook
-- [ ] **T014: Update verification-complete.py to use v2 schema** - Integrate TaskSchemaParser into verification hook
-- [ ] **T015: Simplify business logic with semantic states** - Refactor blocking conditions to use semantic states
+- [x] **T012: Update pre-tool-use.py to use v2 schema** - Integrate TaskSchemaParser into pre-tool-use hook
+- [x] **T013: Update post-tool-use.py to use v2 schema** - Integrate TaskSchemaParser into post-tool-use hook
+- [x] **T014: Update verification-complete.py to use v2 schema** - Integrate TaskSchemaParser into verification hook
+- [x] **T015: Simplify business logic with semantic states** - Refactor blocking conditions to use semantic states
 
 ### Phase 5: Testing & Validation
 - [ ] **T016: Test with OpenSpec format** - Validate schema generation and parsing with OpenSpec tasks.md
