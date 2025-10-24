@@ -4,7 +4,6 @@ import tempfile
 import os
 from synapse_cli.parsers import (
     TaskSchemaParser,
-    ParsedTask,
     SchemaValidationError,
 )
 
