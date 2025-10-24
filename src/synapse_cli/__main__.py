@@ -1,8 +1,8 @@
 
 #!/usr/bin/env python3
-"""Main entry point for cortex_cli module."""
+"""Main entry point for synapse_cli module."""
 
-from cortex_cli import main
+from synapse_cli import main
 
 if __name__ == "__main__":
     main()

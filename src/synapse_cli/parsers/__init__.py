@@ -5,9 +5,13 @@ from .task_schema_parser import (
     SchemaValidationError,
     TaskSchemaParser,
 )
+from .schema_generator import SchemaGenerator
+from .schema_validator import SchemaValidator
 
 __all__ = [
     "ParsedTask",
     "SchemaValidationError",
     "TaskSchemaParser",
+    "SchemaGenerator",
+    "SchemaValidator",
 ]

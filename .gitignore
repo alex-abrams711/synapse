@@ -63,3 +63,4 @@ tmp/
 # Test artifacts
 test-*/
 *-test/
+/experiments

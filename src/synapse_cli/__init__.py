@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cortex CLI - AI-first workflow system with quality gates."""
+"""Synapse CLI - AI-first workflow system with quality gates."""
 
 __version__ = "0.1.0"
 
@@ -19,15 +19,15 @@ def get_resources_dir() -> Path:
 
     Resources are now at the package root level, not inside the CLI module.
     """
-    # The package is installed at src/cortex_cli/
+    # The package is installed at src/synapse_cli/
     # Resources are at the package root: <install_prefix>/resources/
-    package_dir = Path(__file__).parent  # src/cortex_cli/
+    package_dir = Path(__file__).parent  # src/synapse_cli/
 
     # Try relative to package installation
     # When installed via pip, the structure is:
-    # site-packages/cortex_cli/__init__.py
+    # site-packages/synapse_cli/__init__.py
     # site-packages/../../../resources/ (for editable installs)
-    # OR for wheel installs: site-packages/cortex_resources/
+    # OR for wheel installs: site-packages/synapse_resources/
 
     # First try looking for adjacent resources directory (editable install)
     resources_dir = package_dir.parent.parent / "resources"
@@ -35,13 +35,13 @@ def get_resources_dir() -> Path:
     # If not found, try installed package data location
     if not resources_dir.exists():
         # Check if resources are bundled with the package
-        resources_dir = package_dir.parent / "cortex_resources"
+        resources_dir = package_dir.parent / "synapse_resources"
 
     if not resources_dir.exists():
         print(f"Error: Resources directory not found.", file=sys.stderr)
         print(f"Searched locations:", file=sys.stderr)
         print(f"  - {package_dir.parent.parent / 'resources'}", file=sys.stderr)
-        print(f"  - {package_dir.parent / 'cortex_resources'}", file=sys.stderr)
+        print(f"  - {package_dir.parent / 'synapse_resources'}", file=sys.stderr)
         sys.exit(1)
 
     return resources_dir
@@ -123,7 +123,7 @@ def get_workflow_info(workflow_name: str) -> Optional[Dict]:
 
 
 def get_config_path(target_dir: Path = None) -> Path:
-    """Get the path to the cortex config file.
+    """Get the path to the synapse config file.
 
     Args:
         target_dir: Target project directory. Defaults to current directory.
@@ -134,11 +134,11 @@ def get_config_path(target_dir: Path = None) -> Path:
     if target_dir is None:
         target_dir = Path.cwd()
 
-    return target_dir / ".cortex" / "config.json"
+    return target_dir / ".synapse" / "config.json"
 
 
 def load_config(target_dir: Path = None) -> Optional[Dict]:
-    """Load the cortex config file.
+    """Load the synapse config file.
 
     Args:
         target_dir: Target project directory. Defaults to current directory.
@@ -155,12 +155,12 @@ def load_config(target_dir: Path = None) -> Optional[Dict]:
         with open(config_path, 'r') as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Warning: Could not read cortex config: {e}", file=sys.stderr)
+        print(f"Warning: Could not read synapse config: {e}", file=sys.stderr)
         return None
 
 
 def save_config(config: Dict, target_dir: Path = None) -> bool:
-    """Save the cortex config file.
+    """Save the synapse config file.
 
     Args:
         config: Config data to save
@@ -171,13 +171,13 @@ def save_config(config: Dict, target_dir: Path = None) -> bool:
     """
     config_path = get_config_path(target_dir)
 
-    # Ensure .cortex directory exists
-    cortex_dir = config_path.parent
-    if not cortex_dir.exists():
+    # Ensure .synapse directory exists
+    synapse_dir = config_path.parent
+    if not synapse_dir.exists():
         try:
-            cortex_dir.mkdir(parents=True)
+            synapse_dir.mkdir(parents=True)
         except IOError as e:
-            print(f"Error: Could not create .cortex directory: {e}", file=sys.stderr)
+            print(f"Error: Could not create .synapse directory: {e}", file=sys.stderr)
             return False
 
     # Validate config can be serialized
@@ -194,7 +194,7 @@ def save_config(config: Dict, target_dir: Path = None) -> bool:
             f.write('\n')  # Add trailing newline
         return True
     except IOError as e:
-        print(f"Error: Could not write cortex config: {e}", file=sys.stderr)
+        print(f"Error: Could not write synapse config: {e}", file=sys.stderr)
         return False
 
 
@@ -210,7 +210,7 @@ def get_manifest_path(target_dir: Path = None) -> Path:
     if target_dir is None:
         target_dir = Path.cwd()
 
-    return target_dir / ".cortex" / "workflow-manifest.json"
+    return target_dir / ".synapse" / "workflow-manifest.json"
 
 
 def load_manifest(target_dir: Path = None) -> Optional[Dict]:
@@ -247,13 +247,13 @@ def save_manifest(manifest: Dict, target_dir: Path = None) -> bool:
     """
     manifest_path = get_manifest_path(target_dir)
 
-    # Ensure .cortex directory exists
-    cortex_dir = manifest_path.parent
-    if not cortex_dir.exists():
+    # Ensure .synapse directory exists
+    synapse_dir = manifest_path.parent
+    if not synapse_dir.exists():
         try:
-            cortex_dir.mkdir(parents=True)
+            synapse_dir.mkdir(parents=True)
         except IOError as e:
-            print(f"Error: Could not create .cortex directory: {e}", file=sys.stderr)
+            print(f"Error: Could not create .synapse directory: {e}", file=sys.stderr)
             return False
 
     # Validate manifest can be serialized
@@ -385,7 +385,7 @@ def create_manifest(
     manifest = {
         'workflow_name': workflow_name,
         'applied_at': datetime.now().isoformat(),
-        'cortex_version': __version__,
+        'synapse_version': __version__,
         'files_copied': all_copied_files,
         'hooks_added': hooks_added,
         'settings_updated': settings_updated
@@ -433,12 +433,12 @@ def get_backup_dir(target_dir: Path = None) -> Path:
         target_dir: Target project directory. Defaults to current directory.
 
     Returns:
-        Path to the backup directory (.cortex/backups/)
+        Path to the backup directory (.synapse/backups/)
     """
     if target_dir is None:
         target_dir = Path.cwd()
 
-    return target_dir / ".cortex" / "backups"
+    return target_dir / ".synapse" / "backups"
 
 
 def create_backup(target_dir: Path = None) -> Optional[Path]:
@@ -710,22 +710,22 @@ def cleanup_empty_directories(root_dir: Path) -> None:
 
 # Validation Functions
 
-def validate_cortex_initialized(target_dir: Path = None) -> bool:
-    """Validate that cortex has been initialized in the target directory.
+def validate_synapse_initialized(target_dir: Path = None) -> bool:
+    """Validate that synapse has been initialized in the target directory.
 
     Args:
         target_dir: Target project directory. Defaults to current directory.
 
     Returns:
-        True if cortex is initialized, False otherwise
+        True if synapse is initialized, False otherwise
     """
     if target_dir is None:
         target_dir = Path.cwd()
 
-    cortex_dir = target_dir / ".cortex"
-    config_file = cortex_dir / "config.json"
+    synapse_dir = target_dir / ".synapse"
+    config_file = synapse_dir / "config.json"
 
-    return cortex_dir.exists() and config_file.exists()
+    return synapse_dir.exists() and config_file.exists()
 
 
 def validate_claude_code_available(target_dir: Path = None) -> bool:
@@ -791,10 +791,10 @@ def validate_workflow_preconditions(workflow_name: str, target_dir: Path = None)
     if target_dir is None:
         target_dir = Path.cwd()
 
-    # 1. Validate cortex is initialized
-    if not validate_cortex_initialized(target_dir):
-        print("Error: Cortex has not been initialized in this directory.", file=sys.stderr)
-        print("Please run 'cortex init' first to initialize the project.", file=sys.stderr)
+    # 1. Validate synapse is initialized
+    if not validate_synapse_initialized(target_dir):
+        print("Error: Synapse has not been initialized in this directory.", file=sys.stderr)
+        print("Please run 'synapse init' first to initialize the project.", file=sys.stderr)
         sys.exit(1)
 
     # 2. Validate workflow exists
@@ -847,10 +847,10 @@ def validate_removal_preconditions(target_dir: Path = None) -> None:
     if target_dir is None:
         target_dir = Path.cwd()
 
-    # 1. Validate cortex is initialized
-    if not validate_cortex_initialized(target_dir):
-        print("Error: Cortex has not been initialized in this directory.", file=sys.stderr)
-        print("Please run 'cortex init' first to initialize the project.", file=sys.stderr)
+    # 1. Validate synapse is initialized
+    if not validate_synapse_initialized(target_dir):
+        print("Error: Synapse has not been initialized in this directory.", file=sys.stderr)
+        print("Please run 'synapse init' first to initialize the project.", file=sys.stderr)
         sys.exit(1)
 
     # 2. Check if there's an active workflow to remove
@@ -863,7 +863,7 @@ def validate_removal_preconditions(target_dir: Path = None) -> None:
     if not has_config_workflow and not has_manifest:
         print("No active workflow found to remove.", file=sys.stderr)
         print("\nTo apply a workflow, use:", file=sys.stderr)
-        print("  cortex workflow <name>", file=sys.stderr)
+        print("  synapse workflow <name>", file=sys.stderr)
         sys.exit(0)  # Not an error, just nothing to do
 
 
@@ -888,10 +888,10 @@ def prompt_agent_selection() -> Dict[str, str]:
             if choice == "1":
                 return {
                     "type": "claude-code",
-                    "description": "Claude Code AI coding assistant with Cortex integration"
+                    "description": "Claude Code AI coding assistant with Synapse integration"
                 }
             elif choice == "2":
-                print("\nError: Cortex requires an AI coding assistant to function.", file=sys.stderr)
+                print("\nError: Synapse requires an AI coding assistant to function.", file=sys.stderr)
                 print("Please install Claude Code and try again.", file=sys.stderr)
                 sys.exit(1)
             else:
@@ -901,49 +901,37 @@ def prompt_agent_selection() -> Dict[str, str]:
             sys.exit(1)
 
 
-def init_cortex(target_dir: Path = None) -> None:
-    """Initialize cortex in the target directory.
+def init_synapse(target_dir: Path = None) -> None:
+    """Initialize synapse in the target directory.
 
     Args:
-        target_dir: Directory to initialize cortex in. Defaults to current directory.
+        target_dir: Directory to initialize synapse in. Defaults to current directory.
     """
     if target_dir is None:
         target_dir = Path.cwd()
 
-    cortex_dir = target_dir / ".cortex"
+    synapse_dir = target_dir / ".synapse"
 
-    # Check if .cortex already exists
-    if cortex_dir.exists():
-        print(f"Error: .cortex directory already exists at {cortex_dir}", file=sys.stderr)
-        print("Remove it first or run 'cortex init' in a different directory.", file=sys.stderr)
+    # Check if .synapse already exists
+    if synapse_dir.exists():
+        print(f"Error: .synapse directory already exists at {synapse_dir}", file=sys.stderr)
+        print("Remove it first or run 'synapse init' in a different directory.", file=sys.stderr)
         sys.exit(1)
 
     # Get resources from package
     resources_dir = get_resources_dir()
 
-    print(f"Initializing cortex in {target_dir}")
+    print(f"Initializing synapse in {target_dir}")
 
     # Prompt for AI agent selection
     agent_info = prompt_agent_selection()
 
-    # Create .cortex directory structure
-    cortex_dir.mkdir(parents=True)
-
-    # Copy sense command only
-    sense_src = resources_dir / "commands" / "cortex" / "sense.md"
-    commands_dst = cortex_dir / "commands" / "cortex"
-    if sense_src.exists():
-        # Create the commands/cortex directory structure
-        commands_dst.mkdir(parents=True, exist_ok=True)
-
-        # Copy only the sense.md file
-        sense_dst = commands_dst / "sense.md"
-        shutil.copy2(sense_src, sense_dst)
-        print(f"  ✓ Copied sense command to {sense_dst}")
+    # Create .synapse directory structure
+    synapse_dir.mkdir(parents=True)
 
     # Create baseline config.json
     config_template_path = resources_dir / "settings" / "config-template.json"
-    config_dst_path = cortex_dir / "config.json"
+    config_dst_path = synapse_dir / "config.json"
 
     if config_template_path.exists():
         try:
@@ -952,7 +940,7 @@ def init_cortex(target_dir: Path = None) -> None:
                 config = json.load(f)
 
             # Populate with current values
-            config['cortex_version'] = __version__
+            config['synapse_version'] = __version__
             config['initialized_at'] = datetime.now().isoformat()
             config['project']['root_directory'] = str(target_dir.absolute())
 
@@ -975,12 +963,11 @@ def init_cortex(target_dir: Path = None) -> None:
     else:
         print(f"  Warning: Baseline config template not found at {config_template_path}", file=sys.stderr)
 
-    print(f"\nCortex initialized successfully!")
+    print(f"\nSynapse initialized successfully!")
     print(f"\nDirectory structure created:")
-    print(f"  {cortex_dir}/")
-    print(f"  ├── commands/cortex/sense.md")
+    print(f"  {synapse_dir}/")
     print(f"  └── config.json")
-    print(f"\nUse 'cortex workflow <name>' to apply agents, hooks, and additional commands.")
+    print(f"\nUse 'synapse workflow <name>' to apply agents, hooks, and commands.")
 
 
 def workflow_list() -> None:
@@ -1011,7 +998,7 @@ def workflow_list() -> None:
         print()  # Blank line between workflows
 
     print(f"Total: {len(workflows)} workflow(s)")
-    print("\nUse 'cortex workflow <name>' to apply a workflow.")
+    print("\nUse 'synapse workflow <name>' to apply a workflow.")
 
 
 def workflow_status() -> None:
@@ -1029,9 +1016,9 @@ def workflow_status() -> None:
     if not has_config_workflow and not has_manifest:
         print("No active workflow found.")
         print("\nTo apply a workflow, use:")
-        print("  cortex workflow <name>")
+        print("  synapse workflow <name>")
         print("\nTo list available workflows, use:")
-        print("  cortex workflow list")
+        print("  synapse workflow list")
         return
 
     print("Active Workflow Status")
@@ -1060,7 +1047,7 @@ def workflow_status() -> None:
         print("=" * 60)
         print(f"\nWorkflow: {manifest['workflow_name']}")
         print(f"Applied: {manifest['applied_at']}")
-        print(f"Cortex Version: {manifest['cortex_version']}")
+        print(f"Synapse Version: {manifest['synapse_version']}")
 
         # Show copied files
         if manifest['files_copied']:
@@ -1117,7 +1104,7 @@ def workflow_status() -> None:
 
     print("\n" + "=" * 60)
     print("\nTo remove this workflow, use:")
-    print("  cortex workflow remove")
+    print("  synapse workflow remove")
 
 
 def workflow_remove() -> None:
@@ -1223,11 +1210,11 @@ def workflow_remove() -> None:
     else:
         print("Workflow removal incomplete. Manual cleanup may be required.")
         if has_manifest:
-            print(f"\nReview .cortex/workflow-manifest.json for files that may need manual removal.")
+            print(f"\nReview .synapse/workflow-manifest.json for files that may need manual removal.")
         print("\nFiles that may need manual cleanup:")
         print("  - Files in .claude/agents/")
         print("  - Files in .claude/hooks/")
-        print("  - Files in .claude/commands/cortex/")
+        print("  - Files in .claude/commands/synapse/")
         print("  - Hook configurations in .claude/settings.json")
 
 
@@ -1480,7 +1467,7 @@ def apply_workflow_directories(
 ) -> Dict[str, Tuple[List[Path], List[Path], List[Path]]]:
     """Apply workflow directories to target .claude directory.
 
-    Copies agents/ and hooks/ from the workflow, and commands/cortex/ from top-level resources to .claude/
+    Copies agents/ and hooks/ from the workflow, and commands/synapse/ from top-level resources to .claude/
 
     Args:
         workflow_name: Name of the workflow to apply
@@ -1496,7 +1483,6 @@ def apply_workflow_directories(
     """
     workflows_dir = get_workflows_dir()
     workflow_dir = workflows_dir / workflow_name
-    resources_dir = get_resources_dir()
 
     if not workflow_dir.exists():
         print(f"Error: Workflow directory not found: {workflow_dir}", file=sys.stderr)
@@ -1516,7 +1502,7 @@ def apply_workflow_directories(
     directory_mappings = [
         (workflow_dir, "agents", "agents", "agents"),
         (workflow_dir, "hooks", "hooks", "hooks"),
-        (resources_dir, "commands/cortex", "commands/cortex", "commands"),
+        (workflow_dir, "commands/synapse", "commands/synapse", "commands"),
     ]
 
     for src_root, src_subdir, dst_subdir, display_name in directory_mappings:
@@ -1676,7 +1662,7 @@ def workflow_apply(name: str, force: bool = False) -> None:
 
     if has_conflicts:
         print("\nWarning: Some files were skipped because they already exist.")
-        print("Use 'cortex workflow <name> --force' to overwrite existing files.")
+        print("Use 'synapse workflow <name> --force' to overwrite existing files.")
 
     print("\nWorkflow applied successfully!")
 
@@ -1684,29 +1670,29 @@ def workflow_apply(name: str, force: bool = False) -> None:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Cortex - AI-first workflow system with quality gates",
+        description="Synapse - AI-first workflow system with quality gates",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  cortex init                      Initialize cortex in current directory
-  cortex init /path/to/project     Initialize cortex in specific directory
-  cortex workflow list             List available workflows
-  cortex workflow status           Show active workflow
-  cortex workflow remove           Remove current workflow
-  cortex workflow development      Apply development workflow
+  synapse init                      Initialize synapse in current directory
+  synapse init /path/to/project     Initialize synapse in specific directory
+  synapse workflow list             List available workflows
+  synapse workflow status           Show active workflow
+  synapse workflow remove           Remove current workflow
+  synapse workflow development      Apply development workflow
         """
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Init command
-    init_parser = subparsers.add_parser("init", help="Initialize cortex in a project")
+    init_parser = subparsers.add_parser("init", help="Initialize synapse in a project")
     init_parser.add_argument(
         "directory",
         nargs="?",
         type=Path,
         default=None,
-        help="Directory to initialize cortex in (default: current directory)"
+        help="Directory to initialize synapse in (default: current directory)"
     )
 
     # Workflow command
@@ -1732,7 +1718,7 @@ Examples:
     args = parser.parse_args()
 
     if args.command == "init":
-        init_cortex(args.directory)
+        init_synapse(args.directory)
     elif args.command == "workflow":
         # Handle workflow subcommands and workflow application
         workflow_arg = args.workflow_name_or_command

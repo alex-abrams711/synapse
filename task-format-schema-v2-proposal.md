@@ -27,10 +27,10 @@ The current experimental implementation (in `experiments/`) proves the concept w
 - [x] **T007: Write parser unit tests** - Test parsing with valid schemas, malformed schemas, edge cases
 
 ### Phase 3: Sense Command Enhancement
-- [ ] **T008: Add Phase 6 extraction algorithm** - Implement concrete logic for extracting patterns from tasks.md files
-- [ ] **T009: Implement status value detection** - Extract and normalize all status field names and values
-- [ ] **T010: Add schema validation tests** - Validate generated schema by re-parsing tasks with 95%+ match rate
-- [ ] **T011: Enhance error reporting** - Provide actionable feedback when schema generation fails
+- [x] **T008: Add Phase 6 extraction algorithm** - Implement concrete logic for extracting patterns from tasks.md files
+- [x] **T009: Implement status value detection** - Extract and normalize all status field names and values
+- [x] **T010: Add schema validation tests** - Validate generated schema by re-parsing tasks with 95%+ match rate
+- [x] **T011: Enhance error reporting** - Provide actionable feedback when schema generation fails
 
 ### Phase 4: Hook Integration
 - [ ] **T012: Update pre-tool-use.py to use v2 schema** - Integrate TaskSchemaParser into pre-tool-use hook
