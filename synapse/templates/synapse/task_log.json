@@ -1,6 +1,0 @@
-{
-  "workflow_id": "{{workflow_id}}",
-  "project_name": "{{project_name}}",
-  "synapse_version": "{{synapse_version}}",
-  "entries": []
-}

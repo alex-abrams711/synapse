@@ -1,201 +1,38 @@
-# Synapse Agent Workflow System - test_project
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
 
-**Project**: test_project
-**Synapse Version**: 1.0.0
-**Workflow Directory**: `.synapse/`
-**Initialized**: 2025-09-27 23:44:29
+These instructions are for AI assistants working in this project.
 
-## Overview
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
 
-This project uses the Synapse Agent Workflow System for sophisticated task coordination and agent-based development. Synapse provides structured workflow management through specialized Claude Code agents that collaborate to complete complex development tasks efficiently and with high quality.
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
 
-## Agent System
+Keep this managed block so 'openspec update' can refresh the instructions.
 
-### Available Agents
+<!-- OPENSPEC:END -->
 
-#### 🛠️ DEV Agent
-**Role**: Primary code implementation and development
-**Context**: `.claude/agents/dev.md`
-**Responsibilities**:
-- Code implementation according to specifications
-- Refactoring and code quality improvements
-- Unit test development and maintenance
-- Technical documentation creation
-- Integration with existing codebases
+# Working Agreements
 
-#### 🔍 AUDITOR Agent
-**Role**: Quality assurance and verification
-**Context**: `.claude/agents/auditor.md`
-**Responsibilities**:
-- Comprehensive code review and analysis
-- Test verification and coverage validation
-- Security and performance analysis
-- Compliance checking and quality metrics
-- Verification report generation
+- You MUST ALWAYS follow the instructions in this document.
+- You MUST NEVER make assumptions about what the user wants beyond what is explicitly stated in their prompt.
+- You MUST ALWAYS ask for clarification if the user's request is ambiguous or incomplete.
+- You MUST ALWAYS indicate your intended actions before taking them.
+- YOU MUST ALWAYS attempt to use a sub-agent if one is available for the task at hand.
+- YOU MUST ALWAYS be concise and to the point in your responses - every word must serve a purpose.
+- YOU MUST NEVER do more than what the user has asked for.
+- YOU MUST ALWAYS stop after each task, report what you did, and wait for further instructions.
 
-#### 🎯 DISPATCHER Agent
-**Role**: Workflow coordination and task management
-**Context**: `.claude/agents/dispatcher.md`
-**Responsibilities**:
-- Task analysis and decomposition
-- Agent coordination and assignment
-- Workflow state management
-- Progress monitoring and reporting
-- Conflict resolution and escalation
+# Sub Agents
 
-### Agent Interaction Model
+It is MANDATORY that you follow the below guide when deciding whether to use a sub-agent or not:
 
-The agents operate in a coordinated workflow:
+- ALWAYS use the "library-workflow-builder" sub-agent for any task involving creating or modifying libraries or workflows.
 
-1. **DISPATCHER** receives user requests and breaks them into actionable tasks
-2. **DEV** implements code according to task specifications and acceptance criteria
-3. **AUDITOR** verifies implementation quality and ensures all criteria are met
-4. **DISPATCHER** coordinates the overall workflow and manages dependencies
+All other tasks should be handled by you directly.
 
-## Available Commands
-
-### Workflow Management
-- **`/status`** - Display current workflow status and agent activity
-- **`/workflow`** - Comprehensive workflow state management
-  - `/workflow status` - Detailed workflow state information
-  - `/workflow log` - View filtered task log entries
-  - `/workflow pause/resume` - Control workflow execution
-  - `/workflow task <id> <action>` - Manage individual tasks
-
-### Configuration and Validation
-- **`/validate`** - Validate project configuration and system integrity
-  - `/validate --fix` - Automatically fix detected issues
-  - `/validate --component <name>` - Validate specific components
-  - `/validate --deep` - Extended validation with security checks
-
-### Agent Management
-- **`/agent`** - Manage individual agent configurations
-  - `/agent status` - Overview of all agents
-  - `/agent <id> enable/disable` - Control agent availability
-  - `/agent <id> config` - View and modify agent settings
-  - `/agent <id> rules` - Manage custom agent rules
-
-## Workflow State Files
-
-### Core Workflow Data
-- **`.synapse/config.yaml`** - Project configuration and agent settings
-- **`.synapse/task_log.json`** - Complete task activity log and agent communication
-- **`.synapse/workflow_state.json`** - Current workflow execution state
-
-### Agent Context Files
-- **`.claude/agents/dev.md`** - DEV agent role definition and capabilities
-- **`.claude/agents/auditor.md`** - AUDITOR agent verification procedures
-- **`.claude/agents/dispatcher.md`** - DISPATCHER agent coordination logic
-
-### Command Definitions
-- **`.claude/commands/status.md`** - Status command implementation
-- **`.claude/commands/workflow.md`** - Workflow management commands
-- **`.claude/commands/validate.md`** - Validation system commands
-- **`.claude/commands/agent.md`** - Agent management commands
-
-## Current Workflow Status
-
-To check the current state of your workflow:
-
-```
-/status
-```
-
-This will show you:
-- Active tasks and their progress
-- Agent assignments and availability
-- Recent activity and updates
-- System health and configuration status
-
-## Getting Started
-
-### For New Tasks
-1. Describe your requirements clearly to DISPATCHER
-2. DISPATCHER will break down the work into specific tasks
-3. Monitor progress with `/status` and `/workflow log`
-4. Use `/validate` to ensure system health
-
-### For Ongoing Work
-1. Check current status with `/status`
-2. Review recent activity with `/workflow log`
-3. Use agent-specific commands to manage individual agents
-4. Validate work quality with AUDITOR verification
-
-### For Troubleshooting
-1. Run `/validate` to check for configuration issues
-2. Use `/workflow log --level ERROR` to find recent errors
-3. Check individual agent status with `/agent <id> status`
-4. Reset workflow if needed with `/workflow reset`
-
-## Task Log Format
-
-The system maintains a comprehensive task log in `.synapse/task_log.json` with entries like:
-
-```json
-{
-  "timestamp": "2025-01-27T10:30:15Z",
-  "agent_id": "dev",
-  "action": "task_completed",
-  "task_id": "task-uuid",
-  "message": "Completed user authentication implementation",
-  "data": {
-    "files_modified": ["auth/login.py", "tests/test_auth.py"],
-    "test_results": "All 15 tests passing",
-    "coverage": "92%"
-  }
-}
-```
-
-## Quality Standards
-
-All work goes through the AUDITOR verification process ensuring:
-- ✅ **Code Quality**: Linting, type checking, and best practices
-- ✅ **Test Coverage**: Comprehensive testing with >80% coverage
-- ✅ **Documentation**: Clear documentation for all public APIs
-- ✅ **Security**: Security best practices and vulnerability checks
-- ✅ **Performance**: Efficient algorithms and resource usage
-
-## Integration with Development Workflow
-
-Synapse integrates seamlessly with your existing development workflow:
-- Maintains existing project structure and conventions
-- Works with your current testing and linting tools
-- Preserves git history and development practices
-- Enhances rather than replaces your development process
-
-## Best Practices
-
-### Task Definition
-- Provide clear, specific requirements
-- Include explicit acceptance criteria
-- Specify any constraints or dependencies
-- Indicate priority and timeline expectations
-
-### Workflow Management
-- Use `/status` regularly to monitor progress
-- Review `/workflow log` to understand recent activities
-- Run `/validate` periodically to ensure system health
-- Coordinate with agents through the task log system
-
-### Quality Assurance
-- Trust the AUDITOR verification process
-- Address verification failures promptly
-- Maintain high standards for code quality
-- Use agent feedback to improve future implementations
-
-## Support and Troubleshooting
-
-### Common Issues
-- **Agent not responding**: Check agent status with `/agent <id> status`
-- **Tasks stuck**: Review workflow log and consider `/workflow reset`
-- **Configuration errors**: Run `/validate --fix` for automatic repair
-- **Performance issues**: Use `/agent <id> workload` to check agent capacity
-
-### Emergency Procedures
-- **Workflow corruption**: Use `/validate --deep` and `/workflow reset`
-- **Agent conflicts**: Disable problematic agents with `/agent <id> disable`
-- **System recovery**: Reinitialize with `synapse init --force`
-
----
-
-**Next Steps**: Start by checking your current workflow status with `/status` and explore the available commands to familiarize yourself with the system capabilities.

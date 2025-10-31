@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(synapse --help)",
+      "Bash(synapse --version)",
+      "Bash(synapse init)",
+      "Bash(synapse workflow list)",
+      "Bash(synapse workflow status)",
+      "Bash(synapse workflow feature-planning)",
+      "Bash(synapse workflow remove)",
+      "Bash(synapse workflow feature-implementation)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

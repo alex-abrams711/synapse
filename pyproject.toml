@@ -2,50 +2,48 @@
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["synapse*"]
-exclude = ["specs*", "tests*"]
-
-[tool.setuptools.package-data]
-synapse = ["templates/**/*"]
-
 [project]
-name = "synapse-workflow"
-version = "1.0.0"
-description = "Agent workflow orchestration for Claude Code"
+name = "synapse-cli"
+version = "0.3.0"
+description = "AI Workflow System for Claude Code Integration"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
 authors = [
-    {name = "Synapse Team", email = "synapse@example.com"}
+    {name = "Alex Abrams", email = "alex@example.com"}
 ]
-license = "MIT"
-requires-python = ">=3.11"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-    "click>=8.0.0",
-    "pyyaml>=6.0",
+
+[project.scripts]
+synapse = "synapse_cli:main"
+
+[project.urls]
+Homepage = "https://github.com/alex-abrams711/synapse"
+Repository = "https://github.com/alex-abrams711/synapse"
+
+[tool.setuptools]
+packages = ["synapse_cli"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+synapse_cli = [
+    "resources/**/*",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-    "types-PyYAML",
 ]
-
-[project.scripts]
-synapse = "synapse.cli.main:cli"
-
-[project.urls]
-Homepage = "https://github.com/synapse-team/synapse-workflow"
-Repository = "https://github.com/synapse-team/synapse-workflow"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -53,49 +51,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
+    "-v",
     "--strict-markers",
-    "--cov=synapse",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-fail-under=80",
+    "--tb=short",
 ]
-
-[tool.ruff]
-target-version = "py311"
-line-length = 100
-
-[tool.ruff.lint]
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-]
-ignore = []
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false

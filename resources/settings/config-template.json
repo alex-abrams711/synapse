@@ -1,0 +1,22 @@
+{
+  "synapse_version": "0.1.0",
+  "initialized_at": "",
+  "agent": {
+    "type": null,
+    "description": null
+  },
+  "project": {
+    "name": "",
+    "description": "",
+    "root_directory": ""
+  },
+  "workflows": {
+    "active_workflow": null,
+    "applied_workflows": []
+  },
+  "settings": {
+    "auto_backup": true,
+    "strict_validation": true,
+    "uv_required": true
+  }
+}
