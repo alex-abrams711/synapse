@@ -54,7 +54,29 @@ def run_quality_command(command_name, command_str, timeout=30, lint_level="stric
                 # For flexible mode, only fail on errors (exit code 2), allow warnings (exit code 1)
                 status = "PASS" if result.returncode in [0, 1] else "FAIL"
             else:  # strict mode
-                status = "PASS" if result.returncode == 0 else "FAIL"
+                # In strict mode, fail on ANY warnings or errors
+                if result.returncode != 0:
+                    status = "FAIL"
+                else:
+                    # Exit code 0, but check for warnings in output
+                    output_text = (result.stdout + result.stderr).lower()
+                    warning_indicators = [
+                        'warning:',
+                        'warnings:',
+                        'warn:',
+                        ' warning ',
+                        'warnings found',
+                        'warning found',
+                        '[warn]',
+                        '(warning)'
+                    ]
+                    has_warnings = any(indicator in output_text for indicator in warning_indicators)
+
+                    if has_warnings:
+                        status = "FAIL"
+                        print("⚠️ Strict mode: Found warnings in lint output", file=sys.stderr)
+                    else:
+                        status = "PASS"
         else:
             status = "PASS" if result.returncode == 0 else "FAIL"
 
@@ -123,11 +145,25 @@ def check_quality_gates():
     """Check all quality gates using configuration file"""
     config = load_quality_config()
     if not config:
-        return {}
+        return None, {}
 
     results = {}
     commands = config.get("commands", {})
     thresholds = config.get("thresholds", {})
+
+    # Check if any quality commands are configured
+    has_any_commands = any([
+        commands.get("lint"),
+        commands.get("typecheck"),
+        commands.get("test"),
+        commands.get("build"),
+        commands.get("coverage")
+    ])
+
+    if not has_any_commands:
+        print("ℹ️  No quality commands configured - skipping quality checks", file=sys.stderr)
+        print("💡 Add linting/testing tools and run 'synapse sense' to enable quality gates", file=sys.stderr)
+        return None, {}
 
     # Get lint level setting
     lint_level = thresholds.get("lintLevel", "strict")
@@ -191,7 +227,7 @@ def check_quality_gates():
                 results["coverage_output"] = output
                 print(f"❌ Coverage command failed: {output}", file=sys.stderr)
 
-    return results
+    return config, results
 
 def main():
     print("🔍 Running task implementer quality gate hook...", file=sys.stderr)
@@ -222,13 +258,19 @@ def main():
     print("🔍 implementer completion detected - running quality gates...", file=sys.stderr)
 
     # Run quality gate validation
-    quality_results = check_quality_gates()
+    config, quality_results = check_quality_gates()
 
-    # If config is empty or missing, block with clear message
+    # If config is None, it means no commands configured (new project) - allow work
+    if config is None:
+        print("✅ No quality commands configured - allowing work to proceed", file=sys.stderr)
+        print("REQUIRED: Use \"verifier\" sub-agent to verify \"implementer\"'s results.", file=sys.stderr)
+        sys.exit(1)
+
+    # If quality_results is empty but config exists, something went wrong
     if not quality_results:
         output = {
             "decision": "block",
-            "reason": "Quality configuration missing or invalid. Run 'synapse sense' to generate configuration."
+            "reason": "Quality configuration exists but no checks were run. Run 'synapse sense' to regenerate configuration."
         }
         print(json.dumps(output))
         sys.exit(2)
@@ -238,16 +280,26 @@ def main():
                if gate in ["lint", "typecheck", "test", "build", "coverage"] and status == "FAIL"]
 
     if failures:
-        # Collect failure details
+        # Collect detailed failure information
         failure_details = []
         for gate in failures:
             output_key = f"{gate}_output"
             if output_key in quality_results:
-                # Get first few lines of error for context
-                error_lines = quality_results[output_key].strip().split('\n')[:5]
-                failure_details.append(f"\n{gate.upper()}: {error_lines[0]}")
+                # Get more context for the implementer to act on
+                error_lines = quality_results[output_key].strip().split('\n')[:10]
+                failure_details.append(f"\n\n{gate.upper()} FAILURES:\n" + "\n".join(error_lines))
 
-        reason = f"Quality gates failing: {', '.join(failures)}. implementer must fix these issues before completion.{''.join(failure_details)}"
+        # Create explicit instructions for the main agent
+        reason = f"""Quality gates failed: {', '.join(failures)}
+
+❌ The implementer's changes did not pass quality checks.
+
+REQUIRED ACTION: You MUST re-invoke the "implementer" sub-agent with these instructions:
+- Tell the implementer to fix the quality gate failures listed below
+- Provide the specific error details to guide the fixes
+- Do NOT make the fixes yourself - the implementer must do this work
+
+FAILURES TO FIX:{''.join(failure_details)}"""
 
         output = {
             "decision": "block",
