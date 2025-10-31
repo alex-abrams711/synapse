@@ -336,10 +336,30 @@ class TestFindMatchingTask:
     def test_keyword_matching(self):
         """Test keyword-based matching."""
         tasks = [
-            Task("Task 1", "Implement authentication", "Not Started", "Not Started", "Not Started",
-                 False, False, False, ["implement", "authentication"], 1),
-            Task("Task 2", "Create database schema", "Not Started", "Not Started", "Not Started",
-                 False, False, False, ["create", "database", "schema"], 5)
+            Task(
+                task_id="Task 1",
+                task_description="Implement authentication",
+                dev_status="Not Started",
+                qa_status="Not Started",
+                user_verification_status="Not Started",
+                dev_status_checked=False,
+                qa_status_checked=False,
+                user_verification_checked=False,
+                keywords=["implement", "authentication"],
+                line_number=1
+            ),
+            Task(
+                task_id="Task 2",
+                task_description="Create database schema",
+                dev_status="Not Started",
+                qa_status="Not Started",
+                user_verification_status="Not Started",
+                dev_status_checked=False,
+                qa_status_checked=False,
+                user_verification_checked=False,
+                keywords=["create", "database", "schema"],
+                line_number=5
+            )
         ]
 
         prompt = "I need to work on the database schema creation"
@@ -351,10 +371,30 @@ class TestFindMatchingTask:
     def test_best_keyword_match(self):
         """Test that best keyword match is selected."""
         tasks = [
-            Task("Task 1", "Implement feature", "Not Started", "Not Started", "Not Started",
-                 False, False, False, ["implement", "feature"], 1),
-            Task("Task 2", "Implement authentication system", "Not Started", "Not Started", "Not Started",
-                 False, False, False, ["implement", "authentication", "system"], 5)
+            Task(
+                task_id="Task 1",
+                task_description="Implement feature",
+                dev_status="Not Started",
+                qa_status="Not Started",
+                user_verification_status="Not Started",
+                dev_status_checked=False,
+                qa_status_checked=False,
+                user_verification_checked=False,
+                keywords=["implement", "feature"],
+                line_number=1
+            ),
+            Task(
+                task_id="Task 2",
+                task_description="Implement authentication system",
+                dev_status="Not Started",
+                qa_status="Not Started",
+                user_verification_status="Not Started",
+                dev_status_checked=False,
+                qa_status_checked=False,
+                user_verification_checked=False,
+                keywords=["implement", "authentication", "system"],
+                line_number=5
+            )
         ]
 
         prompt = "Work on implementing the authentication system"
