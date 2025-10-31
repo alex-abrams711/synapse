@@ -1,159 +1,21 @@
 #!/usr/bin/env python3
+"""Pre-tool-use hook for blocking implementer work based on task status
+
+This hook uses schema-aware task parsing from task_parser.py to enable
+portable workflow logic across projects with different status conventions.
+"""
 import json
 import sys
-import os
 import re
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Tuple
 
-@dataclass
-class Task:
-    """Represents a parsed task with its metadata and statuses"""
-    task_id: str
-    task_description: str
-    dev_status: str
-    qa_status: str
-    user_verification_status: str
-    keywords: List[str]
-    line_number: int
-
-def load_synapse_config():
-    """Load synapse configuration from .synapse/config.json"""
-    config_path = ".synapse/config.json"
-
-    if not os.path.exists(config_path):
-        print(f"⚠️ Synapse config not found at {config_path}", file=sys.stderr)
-        print("💡 Run 'synapse sense' to generate configuration", file=sys.stderr)
-        return None
-
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-            print(f"📋 Using synapse config from {config_path}", file=sys.stderr)
-            return config
-
-    except Exception as e:
-        print(f"❌ Error loading config from {config_path}: {e}", file=sys.stderr)
-        return None
-
-def find_active_tasks_file(config):
-    """Extract active tasks file path from synapse config"""
-    if not config:
-        return None
-
-    third_party_workflows = config.get("third_party_workflows", {})
-    detected_workflows = third_party_workflows.get("detected", [])
-
-    if not detected_workflows:
-        print("ℹ️ No third-party workflows detected - no task management system", file=sys.stderr)
-        return None
-
-    # Use the first detected workflow with an active_tasks_file
-    for workflow in detected_workflows:
-        active_tasks_file = workflow.get("active_tasks_file")
-        if active_tasks_file:
-            print(f"📝 Found active tasks file: {active_tasks_file}", file=sys.stderr)
-            return active_tasks_file
-
-    print("ℹ️ No active tasks file found in workflow configuration", file=sys.stderr)
-    return None
-
-def extract_keywords_from_description(description: str) -> List[str]:
-    """Extract searchable keywords from task description"""
-    # Remove markdown formatting and extract meaningful words
-    clean_desc = re.sub(r'\[\[|\]\]|Task \d+:|#|\*', '', description)
-    words = re.findall(r'\b[a-zA-Z]{3,}\b', clean_desc.lower())
-
-    # Filter out common stop words
-    stop_words = {'the', 'and', 'for', 'with', 'that', 'this', 'are', 'will', 'can', 'should', 'must'}
-    keywords = [word for word in words if word not in stop_words]
-
-    return keywords[:10]  # Limit to top 10 keywords
-
-def parse_tasks_with_structure(tasks_file_path: str) -> List[Task]:
-    """Parse tasks.md file and extract structured task information"""
-    if not os.path.exists(tasks_file_path):
-        print(f"⚠️ Tasks file not found: {tasks_file_path}", file=sys.stderr)
-        return []
-
-    try:
-        with open(tasks_file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
-        print(f"📖 Parsing task structure from {tasks_file_path}", file=sys.stderr)
-
-        tasks = []
-        current_task = None
-
-        for i, line in enumerate(lines, 1):
-            line = line.rstrip()
-
-            # Check for top-level task (starts with [ ] - [[...)
-            task_match = re.match(r'^(\[ \]|\[x\]) - \[\[(.*?)\]\]', line)
-            if task_match:
-                # Save previous task if exists
-                if current_task:
-                    tasks.append(current_task)
-
-                # Extract task ID and description
-                full_desc = task_match.group(2)
-
-                # Try to extract task ID (e.g., "Task 1:", "T-001:", etc.)
-                id_match = re.match(r'^(Task \d+|T-\d+|\d+):\s*(.*)', full_desc)
-                if id_match:
-                    task_id = id_match.group(1)
-                    task_description = id_match.group(2)
-                else:
-                    # Use first few words as ID if no clear pattern
-                    words = full_desc.split()[:3]
-                    task_id = ' '.join(words)
-                    task_description = full_desc
-
-                # Extract keywords for matching
-                keywords = extract_keywords_from_description(full_desc)
-
-                # Initialize new task
-                current_task = Task(
-                    task_id=task_id,
-                    task_description=task_description,
-                    dev_status="Not Started",
-                    qa_status="Not Started",
-                    user_verification_status="Not Started",
-                    keywords=keywords,
-                    line_number=i
-                )
-                continue
-
-            # Check for status lines (indented with 2+ spaces)
-            if current_task and line.startswith('  '):
-                dev_match = re.search(r'Dev Status: \[(.*?)\]', line)
-                if dev_match:
-                    current_task.dev_status = dev_match.group(1).strip()
-                    continue
-
-                qa_match = re.search(r'QA Status: \[(.*?)\]', line)
-                if qa_match:
-                    current_task.qa_status = qa_match.group(1).strip()
-                    continue
-
-                user_match = re.search(r'User Verification Status: \[(.*?)\]', line)
-                if user_match:
-                    current_task.user_verification_status = user_match.group(1).strip()
-                    continue
-
-        # Don't forget the last task
-        if current_task:
-            tasks.append(current_task)
-
-        print(f"📊 Parsed {len(tasks)} structured tasks", file=sys.stderr)
-        for task in tasks:
-            print(f"  - {task.task_id}: Dev={task.dev_status}, QA={task.qa_status}, User={task.user_verification_status}", file=sys.stderr)
-
-        return tasks
-
-    except Exception as e:
-        print(f"❌ Error parsing tasks file {tasks_file_path}: {e}", file=sys.stderr)
-        return []
+# Import shared task parsing utilities
+from task_parser import (
+    Task,
+    load_synapse_config,
+    find_active_tasks_file,
+    parse_tasks_with_structure
+)
 
 def extract_task_reference_from_prompt(prompt: str) -> List[str]:
     """Extract potential task identifiers from implementer prompt"""
@@ -229,22 +91,23 @@ def find_matching_task(prompt: str, parsed_tasks: List[Task]) -> Optional[Task]:
     return None
 
 def check_task_specific_blocking(target_task: Optional[Task], all_tasks: List[Task]) -> Tuple[bool, str]:
-    """Check if work on specific task should be blocked"""
+    """Check if work on specific task should be blocked - uses semantic states"""
     if not all_tasks:
         return False, ""
 
     if target_task:
         print(f"🎯 Checking blocking conditions for target task: {target_task.task_id}", file=sys.stderr)
+        print(f"   States: dev={target_task.dev_state}, qa={target_task.qa_state}, uv={target_task.uv_state}", file=sys.stderr)
 
-        # Allow continued work on task with Dev Status "In Progress"
-        if target_task.dev_status == "In Progress":
+        # Allow continued work on task with Dev State "in_progress"
+        if target_task.dev_state == "in_progress":
             print(f"✅ Allowing continued work on in-progress task: {target_task.task_id}", file=sys.stderr)
             return False, ""
 
-        # Allow work on task that's ready for dev (all statuses are "Not Started")
-        if (target_task.dev_status == "Not Started" and
-            target_task.qa_status == "Not Started" and
-            target_task.user_verification_status == "Not Started"):
+        # Allow work on task that's ready for dev (all semantic states are "not_started")
+        if (target_task.dev_state == "not_started" and
+            target_task.qa_state == "not_started" and
+            target_task.uv_state == "not_started"):
 
             # But check if there are other incomplete tasks blocking this
             blocking_tasks = []
@@ -252,12 +115,11 @@ def check_task_specific_blocking(target_task: Optional[Task], all_tasks: List[Ta
                 if task.task_id == target_task.task_id:
                     continue  # Skip the target task
 
-                # Block if other task has incomplete pipeline
-                if (task.dev_status == "Complete" and
-                    (task.qa_status not in ["Not Started", "QA Passed"] or
-                     task.user_verification_status not in ["Not Started", "Complete"])):
+                # Block if other task has incomplete pipeline (using semantic states)
+                if (task.dev_state == "complete" and
+                    (task.qa_state != "complete" or task.uv_state != "complete")):
                     blocking_tasks.append(f"{task.task_id} (awaiting QA/User Verification)")
-                elif task.dev_status == "In Progress":
+                elif task.dev_state == "in_progress":
                     blocking_tasks.append(f"{task.task_id} (dev in progress)")
 
             if blocking_tasks:
@@ -268,8 +130,8 @@ def check_task_specific_blocking(target_task: Optional[Task], all_tasks: List[Ta
             return False, ""
 
         # Block work on task that's completed dev but not fully verified
-        if (target_task.dev_status == "Complete" and
-            (target_task.qa_status != "QA Passed" or target_task.user_verification_status != "Complete")):
+        if (target_task.dev_state == "complete" and
+            (target_task.qa_state != "complete" or target_task.uv_state != "complete")):
             reason = f"Task '{target_task.task_id}' has completed development but needs QA/User Verification before implementer can work on it again"
             return True, reason
 
@@ -279,11 +141,10 @@ def check_task_specific_blocking(target_task: Optional[Task], all_tasks: List[Ta
 
         blocking_tasks = []
         for task in all_tasks:
-            if task.dev_status == "In Progress":
+            if task.dev_state == "in_progress":
                 blocking_tasks.append(f"{task.task_id} (dev in progress)")
-            elif (task.dev_status == "Complete" and
-                  (task.qa_status not in ["Not Started", "QA Passed"] or
-                   task.user_verification_status not in ["Not Started", "Complete"])):
+            elif (task.dev_state == "complete" and
+                  (task.qa_state != "complete" or task.uv_state != "complete")):
                 blocking_tasks.append(f"{task.task_id} (awaiting QA/User Verification)")
 
         if blocking_tasks:
@@ -334,8 +195,8 @@ def main():
         print("ℹ️ No task management system detected - allowing task to proceed", file=sys.stderr)
         sys.exit(0)
 
-    # Parse structured tasks
-    parsed_tasks = parse_tasks_with_structure(tasks_file_path)
+    # Parse structured tasks with schema-aware normalization
+    parsed_tasks = parse_tasks_with_structure(tasks_file_path, config)
     if not parsed_tasks:
         # No tasks found or error parsing, allow task to proceed
         print("ℹ️ No structured tasks found - allowing task to proceed", file=sys.stderr)

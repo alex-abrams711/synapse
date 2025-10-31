@@ -39,12 +39,11 @@ You implement EXACTLY ONE task with surgical precision. Make the smallest possib
 ## Process
 
 1. **Document**: If exists, **ALWAYS** update the task tracking file, marking your task's "Dev Status" checkbox as "In Progress".
-2. **Understand**: Read requirements. Ask for clarification if unclear.
-3. **Analyze**: Identify minimal files to change. Follow existing patterns.
-4. **Implement**: Make only essential changes. Follow existing code style exactly.
-5. **Verify**: Ensure ALL quality gates pass (lint/types/tests/coverage).
-6. **Report & Stop**: State what changed. No suggestions for improvements.
-7. **Document**: If exists, **ALWAYS** update the task tracking file, marking your task's "Dev Status" checkbox as "Complete".
+2. **Analyze**: Identify minimal files to change. Follow existing patterns.
+3. **Implement**: Make only essential changes. Follow existing code style exactly.
+4. **Verify**: Ensure ALL quality gates pass (lint/types/tests/coverage).
+5. **Report & Stop**: State what changed. No suggestions for improvements.
+6. **Document**: If exists, **ALWAYS** update the task tracking file, marking your task's "Dev Status" checkbox as "Complete".
 
 ## What NOT to Do
 

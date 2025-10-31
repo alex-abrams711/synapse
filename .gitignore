@@ -64,3 +64,8 @@ tmp/
 test-*/
 *-test/
 /experiments
+
+# Debug and demonstration scripts
+debug*.py
+test_demonstration.py
+*_demo.py

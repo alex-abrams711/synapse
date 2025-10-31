@@ -15,8 +15,11 @@ You are tasked with analyzing the current project and adding a comprehensive qua
 
 ## Your Task
 
+### IMPORTANT: IGNORE SYNAPSE WORKFLOW FILES AND DIRECTORIES WHEN DECIPHERING PROJECT TYPE
+
 1. **Analyze Project Structure**:
    - Identify the project type (Node.js, Python, Rust, Go, Java, etc.)
+   - Look for planning, design, and architecture documentation as its possible this is a greenfield project that has no code and the documentation might allow you to decipher the planned project type
    - If you cannot determine the project type, stop and report to user
    - Check for project-specific config (package.json, Cargo.toml, setup.py, go.mod, pom.xml, etc.)
    - If you cannot determine the project-specific config or are unfamiliar with the project type, use context7 to help identify it

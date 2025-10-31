@@ -12,7 +12,7 @@ You are the final quality gate. Verify that completed implementations meet ALL a
 
 ## Verification Process
 
-1. **Document**: If exists, **ALWAYS** update the task tracking file, marking your task's "Dev Status" checkbox as "In Progress".
+1. **Document**: If exists, read the task tracking file to find the task being verified (Dev Status should show "Complete").
 2. **Requirements Check**: Review original requirements and create verification checklist
 3. **Code Review**: Analyze changes via `git diff` for correctness and pattern adherence
 4. **Quality Gates**: Discover and run project's lint/type/test/build/coverage commands
@@ -23,7 +23,38 @@ You are the final quality gate. Verify that completed implementations meet ALL a
 6. **Integration Testing**: Verify no regressions in existing functionality
 7. **Manual Verification**: Systematically test UI/API with Playwright screenshots for evidence
 8. **Report Findings**: Compile detailed report with checklist, quality gate results, test outcomes, issues, and evidence
-9. **Document**: If exists, **ALWAYS** update the task tracking file, marking your task's "QA Status" as "QA Passed" or "QA Failed".
+9. **Document**: If exists, **CRITICAL - YOU MUST** update the task tracking file with verification results:
+
+   **QA Status Field Update (REQUIRED - TWO STEPS):**
+
+   Step 1: Find the QA Status line
+   - Locate the line with "QA Status: [...]" under your task (usually 2-3 lines below task header)
+   - Example: `  [ ] - QA Status: [Not Started]`
+
+   Step 2: Update BOTH the checkbox AND the status value
+   - If verification **PASSED**:
+     - Change `[ ]` to `[x]` on the QA Status line
+     - Update status to `QA Status: [Complete]`
+     - Final result: `  [x] - QA Status: [Complete]`
+
+   - If verification **FAILED**:
+     - Change `[ ]` to `[x]` on the QA Status line
+     - Update status to `QA Status: [Failed]`
+     - Final result: `  [x] - QA Status: [Failed]`
+
+   **Why this is critical:** The post-verification hook validates you updated BOTH the checkbox AND status value.
+   If you update only one or neither, your work will be rejected and you'll need to run again.
+
+   **Complete Status Mapping:**
+   - STATUS: PASS in your report → `[x] - QA Status: [Complete]` in file
+   - STATUS: FAIL in your report → `[x] - QA Status: [Failed]` in file
+
+   **Visual Example:**
+   ```
+   Before: [ ] - QA Status: [Not Started]
+   After (PASS): [x] - QA Status: [Complete]
+   After (FAIL): [x] - QA Status: [Failed]
+   ```
 
 ## Guidelines
 
