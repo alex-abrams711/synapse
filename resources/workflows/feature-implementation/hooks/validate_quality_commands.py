@@ -322,9 +322,9 @@ def validate_command(
                         return True, "✅ Properly detects warnings in strict mode"
                     else:
                         return False, (
-                            f"❌ FAILED: Command returned exit code 0 with no warnings detected.\n"
-                            f"   Expected: Non-zero exit code OR warnings in output for lint errors.\n"
-                            f"   This means the lint command will NOT block on lint issues!"
+                            "❌ FAILED: Command returned exit code 0 with no warnings detected.\n"
+                            "   Expected: Non-zero exit code OR warnings in output for lint errors.\n"
+                            "   This means the lint command will NOT block on lint issues!"
                         )
                 else:
                     return True, f"✅ Properly fails (exit code: {exit_code})"
@@ -335,9 +335,9 @@ def validate_command(
                     return True, f"✅ Properly detects lint issues (exit code: {exit_code})"
                 else:
                     return False, (
-                        f"❌ FAILED: Command returned exit code 0.\n"
-                        f"   Expected: Non-zero exit code for lint errors.\n"
-                        f"   This means the lint command will NOT block on lint issues!"
+                        "❌ FAILED: Command returned exit code 0.\n"
+                        "   Expected: Non-zero exit code for lint errors.\n"
+                        "   This means the lint command will NOT block on lint issues!"
                     )
 
         else:
@@ -352,20 +352,17 @@ def validate_command(
                 )
 
 
-def validate_all_commands(config_path: str = ".synapse/config.json") -> Tuple[bool, Dict[str, Any]]:
+def get_quality_config_mode(quality_config: Dict[str, Any]) -> str:
+    """Determine if config is single or monorepo mode."""
+    return quality_config.get("mode", "single")
+
+
+def validate_single_project(quality_config: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
     """
-    Validate all configured quality commands.
+    Validate quality commands for single-project configuration.
 
     Returns (all_valid, results_dict).
     """
-    # Load config
-    quality_config = load_quality_config(config_path)
-    if not quality_config:
-        return False, {
-            "error": "Quality config not found",
-            "message": "Run '/synapse:sense' to generate quality configuration"
-        }
-
     # Get project type and commands
     project_type = detect_project_type(quality_config)
     commands = quality_config.get("commands", {})
@@ -380,6 +377,7 @@ def validate_all_commands(config_path: str = ".synapse/config.json") -> Tuple[bo
 
     # Validate each command
     results = {
+        "mode": "single",
         "project_type": project_type,
         "lint_level": lint_level,
         "validations": {}
@@ -408,6 +406,163 @@ def validate_all_commands(config_path: str = ".synapse/config.json") -> Tuple[bo
     return all_valid, results
 
 
+def validate_monorepo_projects(quality_config: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Validate quality commands for monorepo configuration.
+
+    Returns (all_valid, results_dict).
+    """
+    projects = quality_config.get("projects", {})
+
+    if not projects:
+        return False, {
+            "error": "No projects configured in monorepo mode",
+            "message": "Run '/synapse:sense' to generate quality configuration"
+        }
+
+    results = {
+        "mode": "monorepo",
+        "projects": {}
+    }
+
+    all_valid = True
+
+    for project_name, project_config in projects.items():
+        project_type = detect_project_type(project_config)
+        commands = project_config.get("commands", {})
+        thresholds = project_config.get("thresholds", {})
+        lint_level = thresholds.get("lintLevel", "strict")
+        directory = project_config.get("directory", "")
+
+        project_results = {
+            "directory": directory,
+            "project_type": project_type,
+            "lint_level": lint_level,
+            "validations": {}
+        }
+
+        for cmd_name in ["lint", "typecheck", "test", "coverage", "build"]:
+            cmd = commands.get(cmd_name)
+
+            if cmd:
+                is_valid, message = validate_command(
+                    cmd_name, cmd, project_type, lint_level
+                )
+
+                project_results["validations"][cmd_name] = {
+                    "command": cmd,
+                    "valid": is_valid,
+                    "message": message
+                }
+
+                if is_valid is False:
+                    all_valid = False
+                elif is_valid is None:
+                    # Warning but not a failure
+                    pass
+
+        results["projects"][project_name] = project_results
+
+    return all_valid, results
+
+
+def validate_all_commands(config_path: str = ".synapse/config.json") -> Tuple[bool, Dict[str, Any]]:
+    """
+    Validate all configured quality commands.
+
+    Returns (all_valid, results_dict).
+    """
+    # Load config
+    quality_config = load_quality_config(config_path)
+    if not quality_config:
+        return False, {
+            "error": "Quality config not found",
+            "message": "Run '/synapse:sense' to generate quality configuration"
+        }
+
+    # Detect mode
+    mode = get_quality_config_mode(quality_config)
+
+    if mode == "single":
+        return validate_single_project(quality_config)
+    elif mode == "monorepo":
+        return validate_monorepo_projects(quality_config)
+    else:
+        return False, {
+            "error": f"Unknown mode: {mode}",
+            "message": "Mode must be 'single' or 'monorepo'"
+        }
+
+
+def format_single_project_report(results: Dict[str, Any]) -> list:
+    """Format single-project validation results."""
+    lines = []
+
+    lines.append(f"Project Type: {results.get('project_type', 'unknown')}")
+    lines.append(f"Lint Level: {results.get('lint_level', 'strict')}")
+    lines.append("")
+    lines.append("Validation Results:")
+    lines.append("-" * 80)
+
+    validations = results.get("validations", {})
+
+    if not validations:
+        lines.append("  ℹ️  No quality commands configured")
+        lines.append("")
+        return lines
+
+    for cmd_name, validation in validations.items():
+        lines.append(f"\n{cmd_name.upper()}:")
+        lines.append(f"  Command: {validation['command']}")
+
+        if validation['valid'] is True:
+            lines.append(f"  Status: {validation['message']}")
+        elif validation['valid'] is False:
+            lines.append(f"  Status: {validation['message']}")
+        else:
+            lines.append(f"  Status: {validation['message']}")
+
+    return lines
+
+
+def format_monorepo_report(results: Dict[str, Any]) -> list:
+    """Format monorepo validation results."""
+    lines = []
+    projects = results.get("projects", {})
+
+    lines.append(f"Projects: {len(projects)}")
+    lines.append("")
+
+    for project_name, project_data in projects.items():
+        lines.append("-" * 80)
+        lines.append(f"📦 PROJECT: {project_name}")
+        lines.append(f"   Directory: {project_data.get('directory', 'N/A')}")
+        lines.append(f"   Type: {project_data.get('project_type', 'unknown')}")
+        lines.append(f"   Lint Level: {project_data.get('lint_level', 'N/A')}")
+        lines.append("")
+
+        validations = project_data.get("validations", {})
+
+        if not validations:
+            lines.append("   ℹ️  No quality commands configured")
+            lines.append("")
+            continue
+
+        for cmd_name, validation in validations.items():
+            lines.append(f"   {cmd_name.upper()}:")
+            lines.append(f"     Command: {validation['command']}")
+
+            if validation['valid'] is True:
+                lines.append(f"     Status: {validation['message']}")
+            elif validation['valid'] is False:
+                lines.append(f"     Status: {validation['message']}")
+            else:
+                lines.append(f"     Status: {validation['message']}")
+            lines.append("")
+
+    return lines
+
+
 def format_validation_report(all_valid: bool, results: Dict[str, Any]) -> str:
     """Format validation results into a readable report."""
     lines = []
@@ -421,24 +576,14 @@ def format_validation_report(all_valid: bool, results: Dict[str, Any]) -> str:
         lines.append(f"   {results['message']}")
         return "\n".join(lines)
 
-    lines.append(f"Project Type: {results.get('project_type', 'unknown')}")
-    lines.append(f"Lint Level: {results.get('lint_level', 'strict')}")
+    mode = results.get("mode", "unknown")
+    lines.append(f"Mode: {mode}")
     lines.append("")
-    lines.append("Validation Results:")
-    lines.append("-" * 80)
 
-    validations = results.get("validations", {})
-
-    for cmd_name, validation in validations.items():
-        lines.append(f"\n{cmd_name.upper()}:")
-        lines.append(f"  Command: {validation['command']}")
-
-        if validation['valid'] is True:
-            lines.append(f"  Status: {validation['message']}")
-        elif validation['valid'] is False:
-            lines.append(f"  Status: {validation['message']}")
-        else:
-            lines.append(f"  Status: {validation['message']}")
+    if mode == "single":
+        lines.extend(format_single_project_report(results))
+    elif mode == "monorepo":
+        lines.extend(format_monorepo_report(results))
 
     lines.append("")
     lines.append("=" * 80)

@@ -83,16 +83,20 @@
     },
     "quality-config": {
       "type": "object",
-      "description": "Quality gate configuration for hooks",
-      "required": ["commands", "thresholds"],
+      "description": "Quality gate configuration for hooks - supports single project or monorepo mode",
       "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["single", "monorepo"],
+          "description": "Configuration mode: 'single' for single project, 'monorepo' for multiple projects. Defaults to 'single' if not specified."
+        },
         "projectType": {
           "type": "string",
-          "description": "Type of project (python, node, rust, etc.)"
+          "description": "Type of project (python, node, rust, go, etc.) - used in single mode only"
         },
         "commands": {
           "type": "object",
-          "description": "Quality check commands - MUST be flat object, NOT subprojects",
+          "description": "Quality check commands - used in single mode only",
           "properties": {
             "lint": {
               "type": "string",
@@ -119,7 +123,7 @@
         },
         "thresholds": {
           "type": "object",
-          "description": "Quality thresholds for validation",
+          "description": "Quality thresholds for validation - used in single mode only",
           "properties": {
             "coverage": {
               "type": "object",
@@ -186,14 +190,170 @@
               "description": "Files that influenced detection"
             }
           }
+        },
+        "projects": {
+          "type": "object",
+          "description": "Project configurations for monorepo mode - each key is a project name",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "type": "object",
+              "required": ["directory", "commands", "thresholds"],
+              "properties": {
+                "directory": {
+                  "type": "string",
+                  "pattern": "^[^/].*/$",
+                  "description": "Relative path to project directory (must end with /)"
+                },
+                "projectType": {
+                  "type": "string",
+                  "description": "Type of project (python, node, rust, go, etc.)"
+                },
+                "commands": {
+                  "type": "object",
+                  "description": "Quality check commands for this project",
+                  "properties": {
+                    "lint": {
+                      "type": "string",
+                      "description": "Command to run linting"
+                    },
+                    "typecheck": {
+                      "type": "string",
+                      "description": "Command to run type checking"
+                    },
+                    "test": {
+                      "type": "string",
+                      "description": "Command to run tests"
+                    },
+                    "coverage": {
+                      "type": "string",
+                      "description": "Command to run coverage analysis"
+                    },
+                    "build": {
+                      "type": "string",
+                      "description": "Command to build project"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "thresholds": {
+                  "type": "object",
+                  "description": "Quality thresholds for this project",
+                  "properties": {
+                    "coverage": {
+                      "type": "object",
+                      "description": "Coverage thresholds per metric",
+                      "properties": {
+                        "statements": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "branches": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "functions": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "lines": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        }
+                      }
+                    },
+                    "lintLevel": {
+                      "type": "string",
+                      "enum": ["strict", "flexible"],
+                      "description": "Lint strictness level"
+                    },
+                    "lintTimeout": {
+                      "type": "number",
+                      "description": "Timeout for lint command in seconds"
+                    },
+                    "typecheckTimeout": {
+                      "type": "number",
+                      "description": "Timeout for typecheck command in seconds"
+                    },
+                    "testTimeout": {
+                      "type": "number",
+                      "description": "Timeout for test command in seconds"
+                    },
+                    "buildTimeout": {
+                      "type": "number",
+                      "description": "Timeout for build command in seconds"
+                    }
+                  }
+                },
+                "metadata": {
+                  "type": "object",
+                  "description": "Metadata about this project's config",
+                  "properties": {
+                    "generated": {
+                      "type": "string",
+                      "description": "Timestamp of generation"
+                    },
+                    "detectedFiles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Files that influenced detection"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
         }
       },
-      "not": {
-        "required": ["subprojects"]
-      },
-      "errorMessage": {
-        "not": "Config uses 'subprojects' structure which is incompatible with current hooks. Expected flat 'commands' and 'thresholds' structure."
-      }
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {"const": "monorepo"}
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["projects"],
+            "not": {
+              "anyOf": [
+                {"required": ["commands"]},
+                {"required": ["thresholds"]}
+              ]
+            },
+            "errorMessage": "Monorepo mode requires 'projects' object and must not have top-level 'commands' or 'thresholds'"
+          },
+          "else": {
+            "if": {
+              "properties": {
+                "mode": {"const": "single"}
+              },
+              "required": ["mode"]
+            },
+            "then": {
+              "required": ["commands", "thresholds"],
+              "not": {
+                "required": ["projects"]
+              },
+              "errorMessage": "Single mode requires 'commands' and 'thresholds' and must not have 'projects'"
+            },
+            "else": {
+              "required": ["commands", "thresholds"],
+              "not": {
+                "required": ["projects"]
+              },
+              "errorMessage": "When 'mode' is not specified (defaults to single), requires 'commands' and 'thresholds'"
+            }
+          }
+        }
+      ]
     },
     "third_party_workflows": {
       "type": "object",

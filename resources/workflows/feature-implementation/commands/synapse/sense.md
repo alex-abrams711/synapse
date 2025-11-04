@@ -20,6 +20,9 @@ You are tasked with analyzing the current project and adding a comprehensive qua
    - If you cannot determine the project type, stop and report to user
    - Check for project-specific config (package.json, Cargo.toml, setup.py, go.mod, pom.xml, etc.)
    - If you cannot determine the project-specific config or are unfamiliar with the project type, use context7 to help identify it
+   - Scan for monorepo indicators (see Monorepo Detection section below)
+   - If monorepo detected, ask user to confirm project list
+   - Determine whether to generate single or monorepo mode config
 
 2. **Detect Third-Party Workflow Systems**:
    - Scan for known workflow frameworks (OpenSpec, GitHub Spec Kit)
@@ -47,31 +50,21 @@ You are tasked with analyzing the current project and adding a comprehensive qua
 
 ## Configuration Schema
 
-Both the `quality-config` and `third_party_workflows` sections should be added to the existing `.synapse/config.json` file with this structure:
+Both the `quality-config` and `third_party_workflows` sections should be added to the existing `.synapse/config.json` file.
+
+### Single Project Mode (default)
+
+For single projects, use this structure:
 
 ```json
 {
   "synapse_version": "0.1.0",
   "initialized_at": "existing timestamp",
-  "agent": {
-    "type": "claude-code",
-    "description": "existing agent info"
-  },
-  "project": {
-    "name": "existing project name",
-    "description": "existing description",
-    "root_directory": "existing root directory"
-  },
-  "workflows": {
-    "active_workflow": "existing workflow info",
-    "applied_workflows": []
-  },
-  "settings": {
-    "auto_backup": true,
-    "strict_validation": true,
-    "uv_required": true
-  },
+  "project": { "..." },
+  "workflows": { "..." },
+  "settings": { "..." },
   "quality-config": {
+    "mode": "single",
     "projectType": "node|python|rust|go|java|generic|etc.",
     "commands": {
       "lint": "command to run linting",
@@ -94,33 +87,177 @@ Both the `quality-config` and `third_party_workflows` sections should be added t
       "detectedFiles": ["list of key files that influenced detection"]
     }
   },
-  "third_party_workflows": {
-    "detected": [
-      {
-        "type": "openspec|spec-kit|custom|unknown",
-        "detection_method": "known_pattern|llm_analysis|user_specified",
-        "root_directory": "openspec/|specs/|custom/path/",
-        "active_feature_directory": "openspec/changes/add-auth/",
-        "active_tasks_file": "openspec/changes/add-auth/tasks.md",
-        "confidence": 0.95,
-        "detected_at": "2025-10-16T15:45:00Z"
-      }
-    ],
-    "user_preferences": {
-      "no_task_management": false,
-      "custom_patterns": [
-        {
-          "pattern": "docs/*/tasks.md",
-          "type": "custom-docs-workflow"
-        }
-      ]
-    },
-    "last_scan": "2025-10-16T15:45:00Z"
-  }
+  "third_party_workflows": { "..." }
 }
 ```
 
-**Important**: Only add the `quality-config` and `third_party_workflows` sections to the existing config.json. Do not modify any other existing sections.
+### Monorepo Mode
+
+For monorepos with multiple sub-projects, use this structure:
+
+```json
+{
+  "synapse_version": "0.1.0",
+  "initialized_at": "existing timestamp",
+  "project": { "..." },
+  "workflows": { "..." },
+  "settings": { "..." },
+  "quality-config": {
+    "mode": "monorepo",
+    "projects": {
+      "backend": {
+        "directory": "backend/",
+        "projectType": "python",
+        "commands": {
+          "lint": "cd backend && ruff check .",
+          "typecheck": "cd backend && mypy .",
+          "test": "cd backend && pytest",
+          "coverage": "cd backend && pytest --cov",
+          "build": "cd backend && python -m build"
+        },
+        "thresholds": {
+          "lintLevel": "strict",
+          "coverage": {
+            "statements": 80,
+            "branches": 75,
+            "functions": 80,
+            "lines": 80
+          }
+        },
+        "metadata": {
+          "generated": "timestamp",
+          "detectedFiles": ["backend/pyproject.toml", "backend/setup.py"]
+        }
+      },
+      "frontend": {
+        "directory": "frontend/",
+        "projectType": "node",
+        "commands": {
+          "lint": "cd frontend && npm run lint",
+          "typecheck": "cd frontend && npm run typecheck",
+          "test": "cd frontend && npm test",
+          "build": "cd frontend && npm run build"
+        },
+        "thresholds": {
+          "lintLevel": "flexible"
+        },
+        "metadata": {
+          "generated": "timestamp",
+          "detectedFiles": ["frontend/package.json"]
+        }
+      }
+    }
+  },
+  "third_party_workflows": { "..." }
+}
+```
+
+**Important Notes**:
+- Only add the `quality-config` and `third_party_workflows` sections to the existing config.json
+- Do not modify any other existing sections
+- The `mode` field defaults to "single" if not specified
+- All commands in monorepo mode MUST include `cd <directory> &&` prefix
+- Project names are derived from their directory names (e.g., "backend", "frontend")
+
+## Monorepo Detection
+
+After analyzing the basic project structure, determine if this is a monorepo with multiple sub-projects.
+
+### Detection Heuristics
+
+Use the following approach to detect monorepo structure:
+
+1. **Check for explicit monorepo config files** (high confidence):
+   - `lerna.json` - Lerna monorepo
+   - `nx.json` - Nx monorepo
+   - `pnpm-workspace.yaml` - pnpm workspace
+   - `turbo.json` - Turborepo
+   - `rush.json` - Rush monorepo
+
+2. **Scan for multiple project config files** (medium confidence):
+   - Use Glob to find all:
+     - `**/package.json` (Node.js projects)
+     - `**/pyproject.toml` or `**/setup.py` (Python projects)
+     - `**/Cargo.toml` (Rust projects)
+     - `**/go.mod` (Go projects)
+   - Exclude common non-project directories: `node_modules`, `.git`, `.venv`, `venv`, `dist`, `build`, `__pycache__`
+   - If found in subdirectories (not just root), count unique parent directories
+
+3. **Analyze findings**:
+   - **0 sub-projects**: Not a monorepo (single project mode)
+   - **1 sub-project**: Ambiguous - likely single project unless user confirms otherwise
+   - **2+ sub-projects**: Likely monorepo - ask user to confirm
+
+### Interactive Clarification
+
+If detection confidence is low or ambiguous:
+
+```python
+print("\\n⚠️  Monorepo detection is uncertain.")
+print(f"Found {len(detected_projects)} potential sub-projects:")
+for name, info in detected_projects.items():
+    print(f"  - {name} ({info['directory']}) - {info['type']}")
+
+print("\\nIs this a monorepo with multiple independent projects? (Y/n): ")
+# Wait for user response
+```
+
+If user confirms monorepo:
+- Set `mode` to "monorepo"
+- Ask user to verify the detected project list
+- Generate config for each project
+
+If user declines:
+- Set `mode` to "single"
+- Generate flat config for primary project only
+
+### Project Config Generation for Monorepo Mode
+
+For each detected project:
+
+1. **Change to project directory**:
+   ```python
+   import os
+   original_dir = os.getcwd()
+   os.chdir(project_directory)
+   ```
+
+2. **Discover quality commands** (use same logic as single mode):
+   - Look for lint configs in project directory
+   - Find test runners
+   - Detect build commands
+   - Check coverage tools
+
+3. **Prefix all commands with directory change**:
+   ```python
+   discovered_command = "ruff check ."
+   final_command = f"cd {directory} && {discovered_command}"
+   ```
+
+4. **Return to root**:
+   ```python
+   os.chdir(original_dir)
+   ```
+
+5. **Add to projects config**:
+   ```python
+   quality_config["projects"][project_name] = {
+       "directory": directory,
+       "projectType": project_type,
+       "commands": prefixed_commands,
+       "thresholds": thresholds,
+       "metadata": { ... }
+   }
+   ```
+
+### Important Notes
+
+- Always run quality checks for ALL projects (no affected-file detection in v1)
+- Project names are derived from directory names (e.g., "backend/", "frontend/")
+- All commands MUST include `cd <directory> &&` prefix
+- Each project has independent thresholds and settings
+
+---
 
 Context:
 
@@ -466,7 +603,7 @@ try:
     result = subprocess.run(
         [sys.executable, validation_script],
         cwd=".",
-        timeout=120,
+        timeout=180,  # Increased timeout for monorepos
         capture_output=False,  # Show output directly to user
         text=True
     )
@@ -492,8 +629,10 @@ except Exception as e:
 ### Summary Report
 
 Provide a summary of what was detected and configured:
-- Project type detected
+- **Configuration mode** (single or monorepo)
+- Project type(s) detected
 - Quality commands configured (lint, test, coverage, etc.)
+  - For monorepo: list commands per project
 - Third-party workflow detection results
 - Task format schema generation (if applicable)
 - **Config structure validation result** (PASS/FAIL)
