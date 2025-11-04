@@ -1667,6 +1667,31 @@ def workflow_apply(name: str, force: bool = False) -> None:
     print("\nWorkflow applied successfully!")
 
 
+def validate_quality() -> None:
+    """Validate that quality commands will properly fail when they should."""
+    # Run validation script
+    resources_dir = get_resources_dir()
+    validation_script = resources_dir / "workflows" / "feature-implementation" / "hooks" / "validate_quality_commands.py"
+
+    if not validation_script.exists():
+        print(f"Error: Validation script not found at {validation_script}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(validation_script)],
+            cwd=Path.cwd(),
+            timeout=120
+        )
+        sys.exit(result.returncode)
+    except subprocess.TimeoutExpired:
+        print("Error: Validation timed out after 120 seconds", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error running validation: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1680,6 +1705,7 @@ Examples:
   synapse workflow status           Show active workflow
   synapse workflow remove           Remove current workflow
   synapse workflow development      Apply development workflow
+  synapse validate-quality          Validate quality commands configuration
         """
     )
 
@@ -1714,6 +1740,12 @@ Examples:
         help="Force overwrite of existing files when applying a workflow"
     )
 
+    # Validate-quality command
+    validate_quality_parser = subparsers.add_parser(
+        "validate-quality",
+        help="Validate that quality commands will properly fail when they should"
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -1732,6 +1764,8 @@ Examples:
         else:
             # Apply workflow by name
             workflow_apply(workflow_arg, args.force)
+    elif args.command == "validate-quality":
+        validate_quality()
     else:
         parser.print_help()
         sys.exit(1)

@@ -432,7 +432,7 @@ for workflow in workflows_detected:
 
 After analysis, update the `.synapse/config.json` file with both the quality configuration and third-party workflow detection results.
 
-### Final Step: Validate Configuration
+### Final Step 1: Validate Configuration Structure
 
 **CRITICAL**: After updating `.synapse/config.json`, you MUST validate the configuration structure using the validation module:
 
@@ -451,6 +451,44 @@ else:
     print("\n✅ Config validation passed - configuration is properly structured")
 ```
 
+### Final Step 2: Validate Quality Commands
+
+**CRITICAL**: After validating the config structure, you MUST validate that the quality commands will actually fail when they should:
+
+```python
+import subprocess
+import sys
+
+# Run validation script
+validation_script = "resources/workflows/feature-implementation/hooks/validate_quality_commands.py"
+
+try:
+    result = subprocess.run(
+        [sys.executable, validation_script],
+        cwd=".",
+        timeout=120,
+        capture_output=False,  # Show output directly to user
+        text=True
+    )
+
+    if result.returncode == 0:
+        print("\n✅ Quality commands validation passed - all commands will properly block on issues")
+    else:
+        print("\n❌ Quality commands validation FAILED!")
+        print("\n⚠️  CRITICAL: Your quality gates are NOT properly configured!")
+        print("   Some commands will NOT block on errors, allowing broken code through.")
+        print("\n   REQUIRED ACTION:")
+        print("   1. Review the validation failures above")
+        print("   2. Fix your quality tool configurations (lint, test, etc.)")
+        print("   3. Re-run this '/synapse:sense' command")
+        print("\n   The validation failures show exactly which commands are broken.")
+
+except subprocess.TimeoutExpired:
+    print("\n⚠️  Validation timed out - this may indicate an issue with your quality commands")
+except Exception as e:
+    print(f"\n⚠️  Could not run validation: {e}")
+```
+
 ### Summary Report
 
 Provide a summary of what was detected and configured:
@@ -458,7 +496,8 @@ Provide a summary of what was detected and configured:
 - Quality commands configured (lint, test, coverage, etc.)
 - Third-party workflow detection results
 - Task format schema generation (if applicable)
-- **Validation result** (PASS/FAIL)
+- **Config structure validation result** (PASS/FAIL)
+- **Quality commands validation result** (PASS/FAIL)
 
 If you are unable to complete the task fully, explain what was done and what is missing so that the user can assist.
 
