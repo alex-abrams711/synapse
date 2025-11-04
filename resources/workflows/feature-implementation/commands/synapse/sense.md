@@ -430,7 +430,37 @@ for workflow in workflows_detected:
 
 ## Output
 
-After analysis, update the `.synapse/config.json` file with both the quality configuration and third-party workflow detection results. Provide a summary of what was detected and configured. If you are unable to complete the task fully, please explain what was done and what is missing so that the user can assist.
+After analysis, update the `.synapse/config.json` file with both the quality configuration and third-party workflow detection results.
+
+### Final Step: Validate Configuration
+
+**CRITICAL**: After updating `.synapse/config.json`, you MUST validate the configuration structure using the validation module:
+
+```python
+from validate_config import validate_config_for_hooks, format_validation_error
+
+# Validate the generated config
+is_valid, error_summary, detailed_issues = validate_config_for_hooks(".synapse/config.json")
+
+if not is_valid:
+    error_message = format_validation_error(error_summary, detailed_issues)
+    print("\n❌ Config Validation Failed!")
+    print(error_message)
+    print("\n⚠️ Please fix the structural issues above and try again.")
+else:
+    print("\n✅ Config validation passed - configuration is properly structured")
+```
+
+### Summary Report
+
+Provide a summary of what was detected and configured:
+- Project type detected
+- Quality commands configured (lint, test, coverage, etc.)
+- Third-party workflow detection results
+- Task format schema generation (if applicable)
+- **Validation result** (PASS/FAIL)
+
+If you are unable to complete the task fully, explain what was done and what is missing so that the user can assist.
 
 **Important**:
 - Only include commands that actually exist in the project
@@ -440,4 +470,5 @@ After analysis, update the `.synapse/config.json` file with both the quality con
 - Always perform third-party workflow detection even if no quality commands are found
 - For third-party workflows, be thorough but ask for user clarification when uncertain
 - Always generate task format schema v2.0 when active tasks file is found
-- Ensure the resulting JSON is valid and well-formatted
+- **Ensure the resulting JSON is valid and well-formatted**
+- **Always validate the final configuration before reporting success**

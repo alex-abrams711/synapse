@@ -10,10 +10,135 @@ Hooks use the **TaskSchemaParser** to parse task management files (tasks.md) usi
 
 | Hook | Purpose | When It Runs |
 |------|---------|--------------|
-| `pre-tool-use.py` | Block work based on task states | Before any tool execution |
-| `post-tool-use.py` | Update task status after work | After tool execution completes |
-| `verification-complete.py` | Handle verification completion | When user verification finishes |
+| `implementer-pre-tool-use.py` | Validate config + block work based on task states | Before implementer tool execution |
+| `implementer-post-tool-use.py` | Validate config + run quality gates | After implementer tool execution |
+| `verifier-post-tool-use.py` | Handle verification completion | After verifier tool execution |
 | `user-prompt-reminder.sh` | Remind about task management | Before user prompts |
+
+**Supporting Modules**:
+- `validate_config.py` - Config validation logic (imported by both implementer hooks)
+- `task_parser.py` - Task parsing utilities (imported by task-based hooks)
+
+## Config Validation System
+
+Config validation is integrated into `implementer-post-tool-use.py` to ensure `.synapse/config.json` is properly structured before running quality gates. This prevents the implementer from proceeding when:
+1. Config has incompatible structure (e.g., `subprojects` instead of flat `commands`)
+2. Config is missing required sections
+
+### The Problem This Solves
+
+**Scenario**:
+1. User runs `/synapse:sense` on a monorepo project
+2. `/synapse:sense` generates config with `subprojects` structure
+3. Quality gate hooks expect flat `commands` structure
+4. Hooks fail when trying to load quality config
+
+**Solution**:
+- `implementer-post-tool-use.py` validates config structure before loading quality config
+- Hard blocks (exit 2) if config structure is invalid
+- Directs user to run `/synapse:sense` to regenerate config in compatible format
+- `/synapse:sense` command validates generated config before reporting success
+
+### Validation Rules
+
+**Structural Validation** (based on `resources/schemas/synapse-config-schema.json`):
+- ✅ Config must have required top-level fields: `synapse_version`, `project`, `workflows`, `settings`
+- ✅ If `quality-config` exists, it must have `commands` and `thresholds` sections
+- ✅ `commands` must be a flat object (NOT `subprojects`)
+- ❌ Blocks if config uses monorepo `subprojects` structure
+- ❌ Blocks if required fields are missing
+
+### Integration Points
+
+1. **implementer-pre-tool-use.py**: Validates config before implementer runs (fail-fast)
+2. **implementer-post-tool-use.py**: Validates config when loading quality config
+3. **/synapse:sense command**: Validates generated config and reports result
+4. **verifier.md**: Checks for permissive quality settings (test/coverage)
+5. **writer.md**: Includes mandatory quality config task for initial project setup
+
+### Usage Example
+
+#### Invalid Config (Monorepo Structure)
+```json
+{
+  "quality-config": {
+    "projectType": "fullstack-python-typescript",
+    "subprojects": {
+      "backend": {
+        "commands": { "lint": "cd backend && ruff check ." },
+        "thresholds": { "coverage": { "lines": 0 } }
+      },
+      "frontend": {
+        "commands": { "lint": "cd frontend && npm run lint" },
+        "thresholds": { "coverage": { "lines": 0 } }
+      }
+    }
+  }
+}
+```
+
+**Result**: Blocked with message directing user to run `/sense`
+
+#### Valid Config (Flat Structure)
+```json
+{
+  "quality-config": {
+    "projectType": "python",
+    "commands": {
+      "lint": "ruff check .",
+      "test": "pytest",
+      "coverage": "pytest --cov"
+    },
+    "thresholds": {
+      "coverage": {
+        "statements": 80,
+        "branches": 75,
+        "functions": 80,
+        "lines": 80
+      },
+      "lintLevel": "strict"
+    }
+  }
+}
+```
+
+**Result**: Passes validation
+
+### Integration with Quality Gates
+
+Config validation is integrated directly into the quality gate workflow:
+
+```
+Pre-tool-use Flow:
+1. implementer-pre-tool-use.py:
+   a. → validate_config_for_hooks()  (fail-fast validation)
+   b. If invalid → hard block with error
+   c. If valid → validate task state
+2. [Implementer agent runs]
+
+Post-tool-use Flow:
+1. [Implementer agent completes]
+2. implementer-post-tool-use.py:
+   a. load_quality_config()
+   b. → validate_config_for_hooks()  (defense-in-depth validation)
+   c. If invalid → hard block with error
+   d. If valid → run quality checks (lint/test/coverage/build)
+```
+
+### Testing Validation
+
+See `test_validate_config.py` in the project root for comprehensive validation tests:
+
+```bash
+python test_validate_config.py
+```
+
+Tests cover:
+- Broken config detection (subprojects structure)
+- Valid config acceptance (flat structure)
+- Incomplete config rejection (missing required fields)
+- Missing commands detection
+- Error message formatting
 
 ## Schema Consumption Pattern
 
@@ -398,7 +523,7 @@ Test with real tasks files:
 synapse sense
 
 # Run hook manually
-python resources/workflows/feature-implementation/hooks/pre-tool-use.py <<EOF
+python resources/workflows/feature-implementation/hooks/implementer-pre-tool-use.py <<EOF
 {
   "tool_name": "Task",
   "tool_input": {

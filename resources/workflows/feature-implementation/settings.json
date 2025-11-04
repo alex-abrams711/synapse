@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/pre-tool-use.py"
+            "command": "uv run .claude/hooks/implementer-pre-tool-use.py"
           }
         ]
       }
@@ -28,11 +28,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/post-tool-use.py"
+            "command": "uv run .claude/hooks/implementer-post-tool-use.py"
           },
           {
             "type": "command",
-            "command": "uv run .claude/hooks/verification-complete.py"
+            "command": "uv run .claude/hooks/verifier-post-tool-use.py"
           }
         ]
       }

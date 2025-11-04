@@ -3,17 +3,41 @@ import json
 import sys
 import subprocess
 import os
-import shlex
+
+# Import config validation
+from validate_config import validate_config_for_hooks, format_validation_error
 
 def load_quality_config():
-    """Load quality configuration from .synapse/config.json"""
+    """Load and validate quality configuration from .synapse/config.json"""
     config_path = ".synapse/config.json"
 
     if not os.path.exists(config_path):
         print(f"⚠️ Synapse config not found at {config_path}", file=sys.stderr)
-        print("💡 Run 'synapse sense' to generate quality configuration", file=sys.stderr)
+        print("💡 Run '/synapse:sense' to generate quality configuration", file=sys.stderr)
         return None
 
+    # First, validate config structure
+    is_valid, error_summary, detailed_issues = validate_config_for_hooks(config_path)
+
+    if not is_valid:
+        # Hard block with validation error
+        error_message = format_validation_error(error_summary, detailed_issues)
+
+        print("", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        print(error_message, file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        print("", file=sys.stderr)
+
+        # Return blocking JSON for Claude
+        output = {
+            "decision": "block",
+            "reason": error_message
+        }
+        print(json.dumps(output))
+        sys.exit(2)
+
+    # Load config (we know it's valid now)
     try:
         with open(config_path, 'r') as f:
             config = json.load(f)
@@ -21,7 +45,7 @@ def load_quality_config():
 
             if not quality_config:
                 print(f"⚠️ Quality config not found in {config_path}", file=sys.stderr)
-                print("💡 Run 'synapse sense' to generate quality configuration", file=sys.stderr)
+                print("💡 Run '/synapse:sense' to generate quality configuration", file=sys.stderr)
                 return None
 
             print(f"📋 Using quality config from {config_path}", file=sys.stderr)
@@ -37,11 +61,10 @@ def run_quality_command(command_name, command_str, timeout=30, lint_level="stric
         return "SKIP", "No command configured"
 
     try:
-        # Split command properly handling quotes and spaces
-        cmd_parts = shlex.split(command_str)
-
+        # Execute command with shell to support cd, &&, and other shell features
         result = subprocess.run(
-            cmd_parts,
+            command_str,
+            shell=True,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -87,7 +110,7 @@ def run_quality_command(command_name, command_str, timeout=30, lint_level="stric
     except subprocess.TimeoutExpired:
         return "FAIL", f"Command timed out after {timeout}s"
     except FileNotFoundError:
-        return "SKIP", f"Command not found: {cmd_parts[0] if cmd_parts else 'unknown'}"
+        return "SKIP", f"Command not found: {command_str}"
     except Exception as e:
         return "FAIL", f"Error running command: {e}"
 
