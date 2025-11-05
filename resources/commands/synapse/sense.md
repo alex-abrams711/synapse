@@ -71,12 +71,101 @@ Coverage Tools:
     Default threshold: 80%
 ```
 
+## Monorepo Support
+
+The sense command detects monorepo structures and generates optimized configurations:
+
+### Automatic Monorepo Detection
+
+When analyzing a project, sense checks for:
+- Multiple project directories with distinct package managers
+- Common monorepo markers (lerna.json, nx.json, pnpm-workspace.yaml, etc.)
+- Multiple language configurations at different depths
+
+### Monorepo Configuration
+
+For monorepo projects, sense generates a `mode: "monorepo"` configuration with:
+- Separate project configurations for each sub-package
+- Individual quality commands per project
+- **Optimization settings** for performance (5-10x faster checks)
+
+Example monorepo config:
+
+```json
+{
+  "quality-config": {
+    "mode": "monorepo",
+    "optimization": {
+      "check_affected_only": true,
+      "detection_method": "uncommitted",
+      "fallback_to_all": true,
+      "force_check_projects": [],
+      "verbose_logging": false
+    },
+    "projects": {
+      "backend": {
+        "directory": "backend/",
+        "projectType": "python",
+        "commands": {
+          "lint": "cd backend && ruff check .",
+          "test": "cd backend && pytest"
+        },
+        "thresholds": {
+          "lintLevel": "strict"
+        }
+      },
+      "frontend": {
+        "directory": "frontend/",
+        "projectType": "node",
+        "commands": {
+          "lint": "cd frontend && npm run lint",
+          "test": "cd frontend && npm test"
+        },
+        "thresholds": {
+          "lintLevel": "flexible"
+        }
+      }
+    }
+  }
+}
+```
+
+### Optimization Settings
+
+The `optimization` section enables git-based change detection to only run quality checks on affected packages:
+
+**Configuration Options**:
+- `check_affected_only` (default: `true`) - Enable smart detection of changed projects
+- `detection_method` (default: `"uncommitted"`) - How to detect changes:
+  - `"uncommitted"` - Detect uncommitted changes (default, best for local development)
+  - `"since_main"` - Changes since origin/main (best for CI/CD and PRs)
+  - `"last_commit"` - Changes in the last commit only
+  - `"staged"` - Only staged changes
+  - `"all_changes"` - All changes including untracked files
+- `fallback_to_all` (default: `true`) - Check all projects if no changes detected (safety fallback)
+- `force_check_projects` (default: `[]`) - Projects to always check regardless of changes (useful for shared libraries)
+- `verbose_logging` (default: `false`) - Show detailed detection information
+
+**Performance Impact**:
+- **Without optimization**: 15 packages × 10 sec = 150 seconds
+- **With optimization**: 1-2 packages × 10 sec = 10-20 seconds
+- **Improvement**: 5-10x faster for typical single-project changes
+
+**Environment Variable Overrides**:
+You can override optimization settings at runtime:
+- `SYNAPSE_CHECK_ALL_PROJECTS=1` - Force check all projects
+- `SYNAPSE_DETECTION_METHOD=<method>` - Override detection method
+- `SYNAPSE_VERBOSE_DETECTION=1` - Enable verbose logging
+
+See the [Hook README](../../workflows/feature-implementation/hooks/README.md#monorepo-optimization) for complete documentation.
+
 ## Integration with Workflows
 
 The sense command automatically runs during workflow initialization:
 
 1. **During `synapse init`**: Basic project detection
 2. **Before applying feature-implementation workflow**: Quality tool configuration
+3. **Monorepo detection**: Automatically configures optimization for multi-package projects
 
 The detected tools are used by the feature-implementation workflow's quality gates to ensure code quality standards are met.
 
@@ -166,6 +255,68 @@ Use the sense command when:
 - Run `/sense` to verify tool commands are correct
 - Check that tools are actually installed (`pip list`, `npm list`)
 - Verify tool commands work from command line first
+
+## Implementation Instructions for AI Assistants
+
+When generating quality configuration for `.synapse/config.json`:
+
+### For Single Project Mode
+
+Generate flat configuration structure:
+
+```json
+{
+  "quality-config": {
+    "mode": "single",
+    "projectType": "<detected-type>",
+    "commands": { /* ... */ },
+    "thresholds": { /* ... */ }
+  }
+}
+```
+
+### For Monorepo Mode
+
+When you detect a monorepo (multiple sub-projects), generate:
+
+```json
+{
+  "quality-config": {
+    "mode": "monorepo",
+    "optimization": {
+      "check_affected_only": true,
+      "detection_method": "uncommitted",
+      "fallback_to_all": true,
+      "force_check_projects": [],
+      "verbose_logging": false
+    },
+    "projects": {
+      "<project-name>": {
+        "directory": "<project-dir>/",
+        "projectType": "<type>",
+        "commands": { /* ... */ },
+        "thresholds": { /* ... */ }
+      }
+    }
+  }
+}
+```
+
+**IMPORTANT**: Always include the `optimization` section in monorepo configs with these defaults:
+- `check_affected_only: true` - Enables git-based change detection (5-10x performance improvement)
+- `detection_method: "uncommitted"` - Best for local development
+- `fallback_to_all: true` - Safety fallback
+- `force_check_projects: []` - User can add shared libraries later
+- `verbose_logging: false` - Minimal output by default
+
+**Recommendation for force_check_projects**:
+If you detect shared/common packages (e.g., "shared-utils", "core", "common", "lib"), add them to `force_check_projects` array and explain to the user:
+
+```
+ℹ️  Detected shared libraries: shared-utils, core
+   These will always be checked due to their dependencies.
+   You can modify force_check_projects in .synapse/config.json if needed.
+```
 
 ## Related Commands
 
