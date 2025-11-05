@@ -78,10 +78,12 @@ def get_changed_files_from_git(detection_method: str = "uncommitted") -> List[st
         if detection_method == "all_changes":
             # Parse git status porcelain format: "XY filename"
             # X = status in index, Y = status in working tree
-            lines = result.stdout.strip().split('\n')
+            # Don't strip the whole stdout - it removes leading spaces from status codes
+            lines = result.stdout.split('\n')
             files = []
             for line in lines:
-                if line.strip():
+                # Check if line has content (but don't strip yet - status codes matter)
+                if line and len(line) > 3:
                     # Skip the first 3 characters (status codes and space)
                     # Handle renamed files: "R  old -> new"
                     if '->' in line:
