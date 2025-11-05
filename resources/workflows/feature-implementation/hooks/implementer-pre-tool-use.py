@@ -7,6 +7,7 @@ portable workflow logic across projects with different status conventions.
 import json
 import sys
 import re
+import os
 from typing import List, Optional, Tuple
 
 # Import shared task parsing utilities
@@ -16,6 +17,9 @@ from task_parser import (
     find_active_tasks_file,
     parse_tasks_with_structure
 )
+
+# Import config validation
+from validate_config import validate_config_for_hooks, format_validation_error
 
 def extract_task_reference_from_prompt(prompt: str) -> List[str]:
     """Extract potential task identifiers from implementer prompt"""
@@ -180,6 +184,32 @@ def main():
         sys.exit(0)
 
     print("🔍 Implementer task call detected - analyzing task requirements...", file=sys.stderr)
+
+    # Validate config structure if it exists
+    config_path = ".synapse/config.json"
+    if os.path.exists(config_path):
+        print("🔍 Validating config structure...", file=sys.stderr)
+        is_valid, error_summary, detailed_issues = validate_config_for_hooks(config_path)
+
+        if not is_valid:
+            # Hard block with validation error
+            error_message = format_validation_error(error_summary, detailed_issues)
+
+            print("", file=sys.stderr)
+            print("=" * 80, file=sys.stderr)
+            print(error_message, file=sys.stderr)
+            print("=" * 80, file=sys.stderr)
+            print("", file=sys.stderr)
+
+            # Return blocking JSON for Claude
+            output = {
+                "decision": "block",
+                "reason": error_message
+            }
+            print(json.dumps(output))
+            sys.exit(2)
+
+        print("✅ Config structure is valid", file=sys.stderr)
 
     # Load synapse configuration
     config = load_synapse_config()

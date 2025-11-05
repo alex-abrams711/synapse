@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/hooks/writer-post-tool-use.py"
+          }
+        ]
+      }
     ]
   }
 }

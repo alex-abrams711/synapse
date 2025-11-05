@@ -23,7 +23,10 @@ You are tasked with analyzing the current project and adding a comprehensive qua
    - If you cannot determine the project type, stop and report to user
    - Check for project-specific config (package.json, Cargo.toml, setup.py, go.mod, pom.xml, etc.)
    - If you cannot determine the project-specific config or are unfamiliar with the project type, use context7 to help identify it
-
+   - Scan for monorepo indicators (see Monorepo Detection section below)
+   - If monorepo detected, ask user to confirm project list
+   - Determine whether to generate single or monorepo mode config
+   
 2. **Detect Third-Party Workflow Systems**:
    - Scan for known workflow frameworks (OpenSpec, GitHub Spec Kit)
    - Discover any tasks.md files across the project
