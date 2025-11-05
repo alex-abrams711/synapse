@@ -7,6 +7,9 @@ import os
 # Import config validation
 from validate_config import validate_config_for_hooks, format_validation_error
 
+# Import change detection for monorepo optimization
+from change_detection import get_affected_projects, get_verbose_detection_info, get_changed_files_from_git
+
 def load_quality_config():
     """Load and validate quality configuration from .synapse/config.json"""
     config_path = ".synapse/config.json"
@@ -232,24 +235,58 @@ def check_project_gates(project_name, project_config):
 
 
 def check_monorepo_gates(config):
-    """Check quality gates for all projects in monorepo"""
+    """Check quality gates for affected projects in monorepo"""
     projects = config.get("projects", {})
 
     if not projects:
         print("❌ No projects configured in monorepo", file=sys.stderr)
         return None, {}
 
-    print(f"🔍 Checking quality gates for {len(projects)} project(s)...", file=sys.stderr)
+    # Get optimization configuration
+    optimization = config.get("optimization", {})
+
+    # Determine which projects to check
+    affected_projects, detection_reason = get_affected_projects(projects, optimization)
+
+    # Get verbose logging setting
+    verbose = optimization.get("verbose_logging", False)
+
+    # Log detection results
+    if len(affected_projects) < len(projects):
+        print(f"🎯 Optimized check: {len(affected_projects)}/{len(projects)} affected project(s)",
+              file=sys.stderr)
+        print(f"   Detection: {detection_reason}", file=sys.stderr)
+
+        if verbose:
+            # Get changed files for verbose output
+            detection_method = optimization.get("detection_method", "uncommitted")
+            changed_files = get_changed_files_from_git(detection_method)
+            verbose_info = get_verbose_detection_info(changed_files, projects, affected_projects)
+            print("", file=sys.stderr)
+            print(verbose_info, file=sys.stderr)
+    else:
+        print(f"🔍 Full check: {len(projects)} project(s)", file=sys.stderr)
+        print(f"   Reason: {detection_reason}", file=sys.stderr)
+
     print("", file=sys.stderr)
 
+    # Track which projects were checked vs skipped
     all_results = {
         "mode": "monorepo",
-        "projects": {}
+        "projects": {},
+        "optimization": {
+            "affected_projects": sorted(list(affected_projects)),
+            "total_projects": len(projects),
+            "detection_reason": detection_reason,
+            "skipped_projects": sorted(list(set(projects.keys()) - affected_projects))
+        }
     }
 
     overall_pass = True
 
-    for project_name, project_config in projects.items():
+    # Run checks only for affected projects
+    for project_name in sorted(affected_projects):  # Sort for consistent output
+        project_config = projects[project_name]
         print(f"📦 Project: {project_name} ({project_config.get('directory', 'N/A')})", file=sys.stderr)
         print("-" * 60, file=sys.stderr)
 
@@ -275,6 +312,13 @@ def check_monorepo_gates(config):
             if passing:
                 print(f"✅ {project_name}: {', '.join(passing)} passed", file=sys.stderr)
 
+        print("", file=sys.stderr)
+
+    # Log skipped projects if any
+    skipped_projects = set(projects.keys()) - affected_projects
+    if skipped_projects and verbose:
+        print(f"⏭️  Skipped {len(skipped_projects)} project(s): {', '.join(sorted(skipped_projects))}",
+              file=sys.stderr)
         print("", file=sys.stderr)
 
     if not overall_pass:

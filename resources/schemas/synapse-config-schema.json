@@ -191,6 +191,42 @@
             }
           }
         },
+        "optimization": {
+          "type": "object",
+          "description": "Performance optimization settings for monorepo quality checks",
+          "properties": {
+            "check_affected_only": {
+              "type": "boolean",
+              "default": true,
+              "description": "Only check projects with detected changes (git-based detection)"
+            },
+            "detection_method": {
+              "type": "string",
+              "enum": ["uncommitted", "since_main", "last_commit", "staged", "all_changes"],
+              "default": "uncommitted",
+              "description": "Git detection method: uncommitted (default), since_main, last_commit, staged, or all_changes"
+            },
+            "fallback_to_all": {
+              "type": "boolean",
+              "default": true,
+              "description": "Check all projects if no changes detected (safety fallback)"
+            },
+            "force_check_projects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "Projects to always check regardless of changes (e.g., shared libraries)"
+            },
+            "verbose_logging": {
+              "type": "boolean",
+              "default": false,
+              "description": "Show detailed detection information in hook output"
+            }
+          },
+          "additionalProperties": false
+        },
         "projects": {
           "type": "object",
           "description": "Project configurations for monorepo mode - each key is a project name",
