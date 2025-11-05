@@ -169,12 +169,20 @@ def get_affected_projects(
     if not check_affected_only:
         return set(projects_config.keys()), "optimization disabled in config"
 
-    # Check environment variable override
+    # Check environment variable override for checking all projects
     if os.getenv("SYNAPSE_CHECK_ALL_PROJECTS") == "1":
         return set(projects_config.keys()), "SYNAPSE_CHECK_ALL_PROJECTS=1 environment variable"
 
-    # Get detection method (default to uncommitted changes)
-    detection_method = optimization_config.get("detection_method", "uncommitted")
+    # Get detection method (with environment variable override)
+    detection_method = os.getenv("SYNAPSE_DETECTION_METHOD")
+    if not detection_method:
+        detection_method = optimization_config.get("detection_method", "uncommitted")
+    else:
+        # Validate environment variable value
+        valid_methods = ["uncommitted", "since_main", "last_commit", "staged", "all_changes"]
+        if detection_method not in valid_methods:
+            # Invalid method - fall back to default
+            detection_method = "uncommitted"
 
     # Get changed files
     changed_files = get_changed_files_from_git(detection_method)

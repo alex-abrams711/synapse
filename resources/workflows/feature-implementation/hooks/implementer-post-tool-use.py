@@ -248,8 +248,10 @@ def check_monorepo_gates(config):
     # Determine which projects to check
     affected_projects, detection_reason = get_affected_projects(projects, optimization)
 
-    # Get verbose logging setting
+    # Get verbose logging setting (with environment variable override)
     verbose = optimization.get("verbose_logging", False)
+    if os.getenv("SYNAPSE_VERBOSE_DETECTION") == "1":
+        verbose = True
 
     # Log detection results
     if len(affected_projects) < len(projects):
