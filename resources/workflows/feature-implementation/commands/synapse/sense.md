@@ -104,6 +104,13 @@ For monorepos with multiple sub-projects, use this structure:
   "settings": { "..." },
   "quality-config": {
     "mode": "monorepo",
+    "optimization": {
+      "check_affected_only": true,
+      "detection_method": "uncommitted",
+      "fallback_to_all": true,
+      "force_check_projects": [],
+      "verbose_logging": false
+    },
     "projects": {
       "backend": {
         "directory": "backend/",
@@ -252,10 +259,24 @@ For each detected project:
 
 ### Important Notes
 
-- Always run quality checks for ALL projects (no affected-file detection in v1)
+- Include the `optimization` section to enable git-based change detection (only checks affected projects)
 - Project names are derived from directory names (e.g., "backend/", "frontend/")
 - All commands MUST include `cd <directory> &&` prefix
 - Each project has independent thresholds and settings
+
+### Optimization Settings
+
+**Always include the `optimization` section in monorepo configs** with these defaults:
+
+- `check_affected_only: true` - Only run quality checks on affected projects (5-10x faster)
+- `detection_method: "uncommitted"` - Git method: `uncommitted`, `since_main`, `last_commit`, `staged`, `all_changes`
+- `fallback_to_all: true` - Check all projects if no changes detected (safety fallback)
+- `force_check_projects: []` - Projects to always check (e.g., shared libraries)
+- `verbose_logging: false` - Detailed detection output
+
+If shared libraries detected (e.g., "shared-utils", "core", "common"), recommend adding them to `force_check_projects`.
+
+Environment overrides: `SYNAPSE_CHECK_ALL_PROJECTS=1`, `SYNAPSE_DETECTION_METHOD=<method>`, `SYNAPSE_VERBOSE_DETECTION=1`
 
 ---
 
