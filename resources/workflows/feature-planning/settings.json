@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/user-prompt-reminder.sh"
+            "command": "hooks/user-prompt-reminder.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/writer-post-tool-use.py"
+            "command": "uv run hooks/writer-post-tool-use.py"
           }
         ]
       }

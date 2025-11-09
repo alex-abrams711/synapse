@@ -8,24 +8,46 @@ import json
 import sys
 import os
 import re
-from typing import List, Dict, Optional, Tuple
+from typing import List, Tuple
 
 
-def parse_tool_output_for_file_path(tool_input: Dict, tool_result: str) -> Optional[str]:
-    """Extract file path from Write/Edit tool usage.
+def validate_status_field(
+    line_num: int,
+    status_code: str,
+    status_value: str,
+    current_task_code: str,
+    expected_suffix: str,
+    status_name: str,
+    valid_statuses: List[str],
+    errors: List[str],
+    warnings: List[str]
+) -> None:
+    """Validate a status field (Dev/QA/UV).
 
     Args:
-        tool_input: The tool input dict containing parameters
-        tool_result: The tool result string
-
-    Returns:
-        File path that was written/edited, or None
+        line_num: Line number in the file
+        status_code: Actual status code from the file
+        status_value: Status value (e.g., "Not Started")
+        current_task_code: Current task code (e.g., "T001")
+        expected_suffix: Expected code suffix (e.g., "DS", "QA", "UV")
+        status_name: Human-readable status name (e.g., "Dev Status")
+        valid_statuses: List of valid status values
+        errors: List to append errors to
+        warnings: List to append warnings to
     """
-    # Check for file_path in tool_input (both Write and Edit tools use this)
-    if "file_path" in tool_input:
-        return tool_input["file_path"]
+    expected_status_code = f"{current_task_code}-{expected_suffix}"
+    if status_code != expected_status_code:
+        errors.append(
+            f"Line {line_num}: {status_name} code '{status_code}' doesn't match task code. "
+            f"Expected '{expected_status_code}'"
+        )
 
-    return None
+    if status_value not in valid_statuses:
+        valid_str = ", ".join(valid_statuses)
+        warnings.append(
+            f"Line {line_num}: {status_name} has non-standard value '{status_value}' "
+            f"(expected: {valid_str})"
+        )
 
 
 def validate_task_format(file_path: str) -> Tuple[bool, List[str]]:
@@ -50,26 +72,26 @@ def validate_task_format(file_path: str) -> Tuple[bool, List[str]]:
     warnings = []
     tasks_found = []
     current_task_line = None
+    current_task_code = None
+    current_task_has_ds = False
     current_task_has_qa = False
     current_task_has_uv = False
-    line_num = 0
+    expected_task_num = 1
 
-    # Patterns for validation
-    # Writer format: [ ] - [[Task description]] or [ ] - [[Task 1: Description]]
-    task_pattern = re.compile(r'^(\[ \]|\[x\]|\[X\]) - \[\[(.+?)\]\]$')
+    # Patterns for validation with task codes
+    # Task format: [ ] - T001 - Task description
+    task_pattern = re.compile(r'^(\[ \]|\[x\]|\[X\]) - (T\d{3,}) - (.+)$')
 
-    # Subtask format (indented): [ ] - [[Subtask description]]
-    subtask_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - \[\[(.+?)\]\]$')
+    # Subtask format (indented): [ ] - T001-ST001 - Subtask description
+    subtask_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - (T\d{3,}-ST\d{3,}) - (.+)$')
 
-    # Status patterns (indented)
-    # Format 1: [ ] - QA Status: [Not Started]
-    # Format 2: [ ] - QA Status: [Not Started/In Progress/Complete]
-    qa_status_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - QA Status: \[(.+?)\]$')
-    uv_status_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - User Verification Status: \[(.+?)\]$')
-
-    # Also support format without checkbox
-    qa_status_alt_pattern = re.compile(r'^  - QA Status: \[(.+?)\]$')
-    uv_status_alt_pattern = re.compile(r'^  - User Verification Status: \[(.+?)\]$')
+    # Status patterns (indented) with codes
+    # [ ] - T001-DS - Dev Status: [Not Started]
+    # [ ] - T001-QA - QA Status: [Not Started]
+    # [ ] - T001-UV - User Verification Status: [Not Started]
+    ds_status_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - (T\d{3,}-DS) - Dev Status: \[(.+?)\]$')
+    qa_status_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - (T\d{3,}-QA) - QA Status: \[(.+?)\]$')
+    uv_status_pattern = re.compile(r'^  (\[ \]|\[x\]|\[X\]) - (T\d{3,}-UV) - User Verification Status: \[(.+?)\]$')
 
     for i, line in enumerate(lines, 1):
         line_num = i
@@ -84,59 +106,105 @@ def validate_task_format(file_path: str) -> Tuple[bool, List[str]]:
         if task_match:
             # Before starting new task, check if previous task had required fields
             if current_task_line is not None:
+                if not current_task_has_ds:
+                    errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'Dev Status' field with code {current_task_code}-DS")
                 if not current_task_has_qa:
-                    errors.append(f"Line {current_task_line}: Task missing required 'QA Status' field")
+                    errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'QA Status' field with code {current_task_code}-QA")
                 if not current_task_has_uv:
-                    errors.append(f"Line {current_task_line}: Task missing required 'User Verification Status' field")
+                    errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'User Verification Status' field with code {current_task_code}-UV")
 
             # Start tracking new task
-            task_desc = task_match.group(2)
-            tasks_found.append((line_num, task_desc))
+            task_code = task_match.group(2)
+            task_desc = task_match.group(3)
+
+            # Validate task code format and sequencing
+            expected_code = f"T{expected_task_num:03d}"
+            if task_code != expected_code:
+                errors.append(f"Line {line_num}: Task code '{task_code}' is incorrect. Expected '{expected_code}' (tasks must be sequential and zero-padded)")
+
+            tasks_found.append((line_num, task_code, task_desc))
             current_task_line = line_num
+            current_task_code = task_code
+            current_task_has_ds = False
             current_task_has_qa = False
             current_task_has_uv = False
+            expected_task_num += 1
             continue
 
         # Check for status fields (only valid within a task)
         if current_task_line is not None:
-            # Check for QA Status
-            qa_match = qa_status_pattern.match(line_stripped) or qa_status_alt_pattern.match(line_stripped)
-            if qa_match:
-                status_value = qa_match.group(2) if qa_match.lastindex >= 2 else qa_match.group(1)
-                current_task_has_qa = True
+            # Check for Dev Status
+            ds_match = ds_status_pattern.match(line_stripped)
+            if ds_match:
+                current_task_has_ds = True
+                validate_status_field(
+                    line_num=line_num,
+                    status_code=ds_match.group(2),
+                    status_value=ds_match.group(3),
+                    current_task_code=current_task_code,
+                    expected_suffix="DS",
+                    status_name="Dev Status",
+                    valid_statuses=['Not Started', 'In Progress', 'Complete'],
+                    errors=errors,
+                    warnings=warnings
+                )
+                continue
 
-                # Validate status value
-                valid_statuses = ['Not Started', 'In Progress', 'Complete']
-                if status_value not in valid_statuses:
-                    warnings.append(f"Line {line_num}: QA Status has non-standard value '{status_value}' (expected: Not Started, In Progress, or Complete)")
+            # Check for QA Status
+            qa_match = qa_status_pattern.match(line_stripped)
+            if qa_match:
+                current_task_has_qa = True
+                validate_status_field(
+                    line_num=line_num,
+                    status_code=qa_match.group(2),
+                    status_value=qa_match.group(3),
+                    current_task_code=current_task_code,
+                    expected_suffix="QA",
+                    status_name="QA Status",
+                    valid_statuses=['Not Started', 'In Progress', 'Complete'],
+                    errors=errors,
+                    warnings=warnings
+                )
                 continue
 
             # Check for User Verification Status
-            uv_match = uv_status_pattern.match(line_stripped) or uv_status_alt_pattern.match(line_stripped)
+            uv_match = uv_status_pattern.match(line_stripped)
             if uv_match:
-                status_value = uv_match.group(2) if uv_match.lastindex >= 2 else uv_match.group(1)
                 current_task_has_uv = True
-
-                # Validate status value
-                valid_statuses = ['Not Started', 'Complete']
-                if status_value not in valid_statuses:
-                    warnings.append(f"Line {line_num}: User Verification Status has non-standard value '{status_value}' (expected: Not Started or Complete)")
+                validate_status_field(
+                    line_num=line_num,
+                    status_code=uv_match.group(2),
+                    status_value=uv_match.group(3),
+                    current_task_code=current_task_code,
+                    expected_suffix="UV",
+                    status_name="User Verification Status",
+                    valid_statuses=['Not Started', 'Complete'],
+                    errors=errors,
+                    warnings=warnings
+                )
                 continue
 
-            # Check for subtasks (these are valid, just continue)
-            if subtask_pattern.match(line_stripped):
+            # Check for subtasks - validate code format matches parent task
+            subtask_match = subtask_pattern.match(line_stripped)
+            if subtask_match:
+                subtask_code = subtask_match.group(2)
+                # Verify subtask code starts with current task code
+                if not subtask_code.startswith(f"{current_task_code}-ST"):
+                    errors.append(f"Line {line_num}: Subtask code '{subtask_code}' doesn't match parent task code '{current_task_code}'. Expected format: '{current_task_code}-ST###'")
                 continue
 
     # Check last task
     if current_task_line is not None:
+        if not current_task_has_ds:
+            errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'Dev Status' field with code {current_task_code}-DS")
         if not current_task_has_qa:
-            errors.append(f"Line {current_task_line}: Task missing required 'QA Status' field")
+            errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'QA Status' field with code {current_task_code}-QA")
         if not current_task_has_uv:
-            errors.append(f"Line {current_task_line}: Task missing required 'User Verification Status' field")
+            errors.append(f"Line {current_task_line}: Task {current_task_code} missing required 'User Verification Status' field with code {current_task_code}-UV")
 
     # Check if any tasks were found
     if not tasks_found:
-        errors.append("No tasks found in file. Expected format: [ ] - [[Task description]]")
+        errors.append("No tasks found in file. Expected format: [ ] - T001 - Task description")
 
     # Combine errors and warnings
     all_messages = errors + warnings
@@ -157,7 +225,6 @@ def main():
     # Parse PostToolUse data
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
-    tool_result = input_data.get("tool_result", "")
 
     # Only process Task tool calls
     if tool_name != "Task":
@@ -174,20 +241,7 @@ def main():
 
     print("📝 Writer completion detected - validating task format...", file=sys.stderr)
 
-    # Look at the tool result to find file operations
-    # The tool_result contains the agent's final report, we need to parse it for file paths
-    # Since we don't have direct access to what files were modified, we'll need to look at
-    # common task file locations or extract from the result
-
-    # Common task file locations to check
-    possible_task_files = [
-        "tasks.md",
-        "TASKS.md",
-        "openspec/changes/*/tasks.md",
-        "specs/*/tasks.md"
-    ]
-
-    # Try to find task files in the current directory and subdirectories
+    # Look for common task file locations in the current directory and subdirectories
     task_files_to_validate = []
 
     # Check if any common task file exists
@@ -239,12 +293,25 @@ The writer sub-agent must format tasks according to the specification:
 
 Required format for each task:
 ```
-[ ] - [[Task description]]
-  [ ] - [[Subtask 1]]
-  [ ] - [[Subtask 2]]
-  [ ] - QA Status: [Not Started]
-  [ ] - User Verification Status: [Not Started]
+[ ] - T001 - Task description
+  [ ] - T001-ST001 - Subtask 1
+  [ ] - T001-ST002 - Subtask 2
+  [ ] - T001-DS - Dev Status: [Not Started]
+  [ ] - T001-QA - QA Status: [Not Started]
+  [ ] - T001-UV - User Verification Status: [Not Started]
+
+[ ] - T002 - Task description
+  [ ] - T002-ST001 - Subtask 1
+  [ ] - T002-DS - Dev Status: [Not Started]
+  [ ] - T002-QA - QA Status: [Not Started]
+  [ ] - T002-UV - User Verification Status: [Not Started]
 ```
+
+Key requirements:
+- Task codes must be sequential and zero-padded (T001, T002, T003...)
+- Subtask codes must match parent task and be sequential per-task (T001-ST001, T001-ST002...)
+- Status codes must match parent task code (T001-DS, T001-QA, T001-UV)
+- All three status fields (Dev, QA, User Verification) are REQUIRED for each task
 
 REQUIRED ACTION: Re-invoke the "writer" sub-agent with instructions to fix the formatting issues below.
 

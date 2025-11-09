@@ -18,16 +18,18 @@ When invoked, you must follow these steps:
 
 2. **Create hierarchical task structure** - Break down the work into logical, manageable tasks with appropriate subtasks.
 
-3. **Apply mandatory formatting** - Format all tasks and subtasks using checkbox notation:
-   - Top-level tasks: `[ ] - [[Insert task requirements]]`
-   - Subtasks: `  [ ] - [[Insert subtask requirements]]`
+3. **Apply mandatory formatting with task codes** - Format all tasks and subtasks using checkbox notation with unique codes:
+   - Top-level tasks: `[ ] - T001 - Insert task requirements` (zero-padded, sequential: T001, T002, T003...)
+   - Subtasks: `  [ ] - T001-ST001 - Insert subtask requirements` (per-task sequential, zero-padded)
+   - All codes must be unique and sequential within their scope
 
 4. **Include quality standards reminder** - Add a statement in each task section indicating that quality standards (lint, typecheck, test, coverage, successful build) must be maintained throughout implementation.
 
-5. **Add mandatory verification subtasks** - Include these specific subtasks for every top-level task:
-   - `  [ ] - Dev Status: [Not Started/In Progress/Complete]`
-   - `  [ ] - QA Status: [Not Started/In Progress/Complete]`
-   - `  [ ] - User Verification Status: [Not Started/In Progress/Complete]`
+5. **Add mandatory status fields** - Include these specific status fields for every top-level task with their own codes:
+   - `  [ ] - T001-DS - Dev Status: [Not Started]`
+   - `  [ ] - T001-QA - QA Status: [Not Started]`
+   - `  [ ] - T001-UV - User Verification Status: [Not Started]`
+   - Status codes must match the parent task code (e.g., T001-DS for task T001, T002-DS for task T002)
 
 6. **Review and validate** - Ensure all tasks are:
    - Specific and measurable
@@ -50,17 +52,17 @@ When invoked, you must follow these steps:
 When breaking down work for a project's initial setup or foundation (e.g., POC, MVP, project scaffolding), you MUST include a dedicated task for establishing quality configurations AFTER initial setup is complete but BEFORE feature implementation begins:
 
 ```markdown
-[ ] - [[Establish Quality Configuration and Testing Standards]]
-  [ ] - [[Configure and verify linting tools (ESLint, Ruff, Clippy, etc.)]]
-  [ ] - [[Configure and verify type checking (TypeScript, mypy, etc.)]]
-  [ ] - [[Set up testing framework and write initial smoke tests]]
-  [ ] - [[Configure coverage tools and set appropriate thresholds]]
-  [ ] - [[Update .synapse/config.json with accurate quality commands and thresholds]]
-  [ ] - [[Run '/synapse:sense' to validate and finalize quality configuration]]
-  [ ] - [[Verify all quality gates pass with current codebase]]
-  [ ] - Dev Status: [Not Started]
-  [ ] - QA Status: [Not Started]
-  [ ] - User Verification Status: [Not Started]
+[ ] - T001 - Establish Quality Configuration and Testing Standards
+  [ ] - T001-ST001 - Configure and verify linting tools (ESLint, Ruff, Clippy, etc.)
+  [ ] - T001-ST002 - Configure and verify type checking (TypeScript, mypy, etc.)
+  [ ] - T001-ST003 - Set up testing framework and write initial smoke tests
+  [ ] - T001-ST004 - Configure coverage tools and set appropriate thresholds
+  [ ] - T001-ST005 - Update .synapse/config.json with accurate quality commands and thresholds
+  [ ] - T001-ST006 - Run '/synapse:sense' to validate and finalize quality configuration
+  [ ] - T001-ST007 - Verify all quality gates pass with current codebase
+  [ ] - T001-DS - Dev Status: [Not Started]
+  [ ] - T001-QA - QA Status: [Not Started]
+  [ ] - T001-UV - User Verification Status: [Not Started]
 
   *Quality Standards: This task establishes the baseline quality gates for the project*
 ```
@@ -94,18 +96,20 @@ Example output format:
 
 ### Tasks
 
-[ ] - [[Task 1: Detailed requirements]]
-  [ ] - [[Subtask 1.1: Specific requirements]]
-  [ ] - [[Subtask 1.2: Specific requirements]]
-  [ ] - QA Status: [Not Started]
-  [ ] - User Verification Status: [Not Started]
+[ ] - T001 - Task 1: Detailed requirements
+  [ ] - T001-ST001 - Subtask 1.1: Specific requirements
+  [ ] - T001-ST002 - Subtask 1.2: Specific requirements
+  [ ] - T001-DS - Dev Status: [Not Started]
+  [ ] - T001-QA - QA Status: [Not Started]
+  [ ] - T001-UV - User Verification Status: [Not Started]
 
   *Quality Standards: Maintain lint, typecheck, test, coverage, and successful build throughout implementation*
 
-[ ] - [[Task 2: Detailed requirements]]
-  [ ] - [[Subtask 2.1: Specific requirements]]
-  [ ] - QA Status: [Not Started]
-  [ ] - User Verification Status: [Not Started]
+[ ] - T002 - Task 2: Detailed requirements
+  [ ] - T002-ST001 - Subtask 2.1: Specific requirements
+  [ ] - T002-DS - Dev Status: [Not Started]
+  [ ] - T002-QA - QA Status: [Not Started]
+  [ ] - T002-UV - User Verification Status: [Not Started]
 
   *Quality Standards: Maintain lint, typecheck, test, coverage, and successful build throughout implementation*
 
