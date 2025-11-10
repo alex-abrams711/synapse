@@ -1,7 +1,4 @@
 {
-  "name": "feature-implementation-v2",
-  "description": "Feature implementation workflow with simplified QA verification (Option 6)",
-  "version": "2.0.0",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -10,6 +7,28 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/user-prompt-reminder.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/active-tasks-enforcer.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/task-edit-validator.py"
           }
         ]
       }

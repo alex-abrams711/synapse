@@ -4,18 +4,25 @@
 
 ## Overview
 
-This workflow implements a radically simplified approach to quality verification:
+This workflow implements a radically simplified approach to quality verification with multi-layer protection:
 
-- **Dumb Hook**: Simple ~400 line checker that only validates QA status
+- **Dumb Hooks**: Simple checkers that enforce workflow rules
 - **Smart Agent**: Performs actual verification with full tool access
 - **User Control**: Can stop with failures and decide when to fix them
+- **Protection Layers**: Prevents work bypass and unauthorized field updates
+
+**Hook System:**
+1. **UserPromptSubmit**: Reminds agent of workflow rules
+2. **PreToolUse**: Blocks source edits without active_tasks set
+3. **PostToolUse**: Blocks unauthorized UV field modifications
+4. **Stop**: Validates QA status before allowing completion
 
 ## Key Innovation: Three-Category QA Status
 
 ```
 [Not Started]        → NOT VERIFIED → Hook blocks (Exit 2)
-[Passed]/[Complete]  → VERIFIED SUCCESS → Hook allows (Exit 0)
-[Failed - {reason}]  → VERIFIED FAILURE → Hook allows (Exit 0)
+[Passed]/[Complete]  → VERIFIED SUCCESS → Hook allows (Exit 1)
+[Failed - {reason}]  → VERIFIED FAILURE → Hook allows (Exit 1)
 ```
 
 **Why this matters:**
@@ -40,7 +47,7 @@ This workflow implements a radically simplified approach to quality verification
 - Make decisions (user's job)
 
 **Exit Codes:**
-- `0` - All active tasks verified (allow stop)
+- `1` - All active tasks verified (allow stop, show verification report to user)
 - `2` - Verification required (block stop, provide directive)
 
 ### 2. UserPromptSubmit Hook (`hooks/user-prompt-reminder.sh`)
@@ -50,8 +57,65 @@ This workflow implements a radically simplified approach to quality verification
 - Reminds agent to clear `active_tasks` when done
 - Shows workflow for handling failures
 - Explains QA Status values
+- **Reminds agent NEVER to update UV fields**
 
 **Runs on:** Every user message
+
+### 3. PreToolUse Hook (`hooks/active-tasks-enforcer.py`)
+
+**What it does:**
+- Intercepts Edit and Write tool calls BEFORE they execute
+- Checks if active_tasks is set in config
+- Identifies "source files" vs "config/docs files"
+- Blocks source file edits if active_tasks is empty
+- Allows config/docs/task file edits without active_tasks
+
+**File Detection Logic:**
+- **Always Allowed** (no active_tasks needed):
+  - .synapse/config.json, .claude/ (workflow config)
+  - README.md, docs/, CHANGELOG.md (documentation)
+  - tasks.md, openspec/changes/ (task files)
+  - .gitignore, .env.example (dev environment)
+- **Requires active_tasks** (source files):
+  - Code files: .py, .js, .ts, .tsx, .go, .rs, .java, etc.
+  - Style files: .css, .scss, .sass, etc.
+  - Files in quality-config project paths
+  - Shell scripts: .sh, .bash
+
+**Exit Codes:**
+- `0` - Success: active_tasks set OR not a source file (allow operation)
+- `2` - Block: Editing source code without active_tasks set
+
+**Why this is needed:**
+- Prevents work bypass: Can't do work without tracking it
+- Ensures QA verification: Stop hook can validate tracked work
+- Closes loophole: Empty active_tasks + code changes = no verification
+
+**Runs on:** Before Edit or Write tool use
+
+### 4. PostToolUse Hook (`hooks/task-edit-validator.py`)
+
+**What it does:**
+- Intercepts Edit and Write tool calls targeting task files
+- Detects changes to User Verification (UV) status fields
+- Blocks edits that modify UV field values
+- Allows all other task file modifications (DS, QA, descriptions, subtasks)
+
+**What it does NOT do:**
+- Block legitimate task updates (DS/QA fields are agent-editable)
+- Block new task creation (UV defaults to `[Not Started]` are allowed)
+- Interfere with non-task file edits
+
+**Exit Codes:**
+- `0` - Success: No UV field modifications (allow operation)
+- `2` - Block: UV field modification detected (provide detailed error)
+
+**Why this is needed:**
+- UV fields are for user approval only
+- Agents should never mark tasks as user-verified
+- Maintains clear separation between technical validation (agent) and user acceptance (user)
+
+**Runs on:** After Edit or Write tool use
 
 ## Workflow Examples
 
@@ -69,7 +133,7 @@ This workflow implements a radically simplified approach to quality verification
    → Updates QA Status: [Passed]
 
 4. Agent tries to stop
-   → Hook allows (Exit 0): "All verified"
+   → Hook allows (Exit 1): Shows verification report with all tasks passed
 
 5. Agent clears active_tasks: []
    → Stops successfully
@@ -87,7 +151,7 @@ This workflow implements a radically simplified approach to quality verification
    → T003: [Passed]
 
 3. Agent tries to stop
-   → Hook allows (Exit 0): "All verified (including failures)"
+   → Hook allows (Exit 1): Shows verification report with pass/fail breakdown
 
 4. Agent asks user: "Would you like me to fix the failed tasks?"
 
@@ -209,6 +273,33 @@ Tasks must include QA Status field with task code:
 - `[Not Started]` - Not verified (hook blocks)
 - `[Passed]` or `[Complete]` - Verified successfully (hook allows)
 - `[Failed - {reason}]` - Verified with failures (hook allows)
+
+### Status Field Ownership
+
+Each task has three status fields with different ownership rules:
+
+**Dev Status (DS)** - Agent updates
+- Agent sets to `[In Progress]` when starting work
+- Agent sets to `[Complete]` when implementation is done
+- Tracks development progress
+
+**QA Status (QA)** - Agent updates
+- Agent runs quality checks (lint, test, typecheck, coverage, build)
+- Agent sets to `[Passed]` or `[Complete]` if all checks pass
+- Agent sets to `[Failed - {specific reason}]` if checks fail
+- Must include failure details (which checks, error messages, line numbers)
+
+**User Verification (UV)** - USER ONLY ⚠️
+- **Agents must NEVER update this field**
+- Only users can mark tasks as `[Verified]`
+- Used for final user acceptance and sign-off
+- Allows users to review and approve work independently
+- **Enforced by PostToolUse hook** - attempts to modify UV fields will be blocked
+
+This separation ensures:
+- Agents handle technical validation (DS, QA)
+- Users maintain final approval authority (UV)
+- Clear audit trail of who verified what
 
 ## Configuration
 

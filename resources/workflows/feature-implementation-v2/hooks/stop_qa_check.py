@@ -100,9 +100,10 @@ def check_edge_cases(active_tasks: List[str], task_file: str) -> None:
 
     # Edge case 1: No active tasks
     if not active_tasks:
-        # Allow stop if no active tasks (no work to verify)
-        print("✅ No active tasks set - allowing stop", file=sys.stderr)
-        sys.exit(0)
+        # Generate report for empty active tasks
+        report = generate_no_tasks_report()
+        print(report, file=sys.stderr)
+        sys.exit(1)  # Show message to user
 
     # Edge case 2: Task file doesn't exist
     task_file_path = Path(task_file)
@@ -135,8 +136,13 @@ def parse_task_file(task_file: str, schema: Dict) -> Dict[str, Dict]:
 
     # Extract patterns from schema
     patterns = schema.get("patterns", {})
-    task_pattern = patterns.get("task")
-    status_field_pattern = patterns.get("status_field")
+    task_pattern_obj = patterns.get("task_line") or patterns.get("task")
+    status_field_pattern_obj = patterns.get("status_line") or patterns.get("status_field")
+
+    # Extract regex strings from pattern objects (v2.0 forward compatibility)
+    # Supports both string patterns (current) and object patterns (future v2.0)
+    task_pattern = task_pattern_obj.get("regex") if isinstance(task_pattern_obj, dict) else task_pattern_obj
+    status_field_pattern = status_field_pattern_obj.get("regex") if isinstance(status_field_pattern_obj, dict) else status_field_pattern_obj
 
     if not task_pattern:
         print("ERROR: No task pattern in schema", file=sys.stderr)
@@ -152,14 +158,15 @@ def parse_task_file(task_file: str, schema: Dict) -> Dict[str, Dict]:
             task_match = re.search(task_pattern, line, re.MULTILINE)
             if task_match:
                 try:
-                    task_code = task_match.group("task_code")
+                    # Try task_id first (v2.0 naming), fallback to task_code (legacy)
+                    task_code = task_match.group("task_id") if "task_id" in task_match.groupdict() else task_match.group("task_code")
                     current_task = task_code
                     tasks[task_code] = {
                         "description": line.strip(),
                         "fields": {}
                     }
-                except IndexError:
-                    # Pattern doesn't have task_code group, skip
+                except (IndexError, KeyError):
+                    # Pattern doesn't have task_code/task_id group, skip
                     pass
 
         # Try to match status field line
@@ -167,10 +174,12 @@ def parse_task_file(task_file: str, schema: Dict) -> Dict[str, Dict]:
             field_match = re.search(status_field_pattern, line, re.MULTILINE)
             if field_match:
                 try:
-                    field_code = field_match.group("field_code")
-                    status_value = field_match.group("status_value")
+                    # Try field first (v2.0 naming), fallback to field_code (legacy)
+                    field_code = field_match.group("field") if "field" in field_match.groupdict() else field_match.group("field_code")
+                    # Try status first (v2.0 naming), fallback to status_value (legacy)
+                    status_value = field_match.group("status") if "status" in field_match.groupdict() else field_match.group("status_value")
                     tasks[current_task]["fields"][field_code] = status_value
-                except IndexError:
+                except (IndexError, KeyError):
                     # Pattern doesn't have required groups, skip
                     pass
 
@@ -257,6 +266,118 @@ def check_qa_status(
 
     all_verified = len(tasks_needing_verification) == 0
     return all_verified, tasks_needing_verification
+
+
+def generate_no_tasks_report() -> str:
+    """Generate report when no active tasks are set."""
+    lines = []
+    lines.append("")
+    lines.append("="*70)
+    lines.append("✅ QA VERIFICATION COMPLETE - NO ACTIVE TASKS")
+    lines.append("="*70)
+    lines.append("")
+    lines.append("No tasks are currently marked as active in .synapse/config.json.")
+    lines.append("")
+    lines.append("This means either:")
+    lines.append("- No work has been started yet")
+    lines.append("- All previous work has been completed and cleared")
+    lines.append("- The active_tasks field is empty")
+    lines.append("")
+    lines.append("You can safely stop without verification checks.")
+    lines.append("")
+    lines.append("="*70)
+
+    return "\n".join(lines)
+
+
+def generate_success_report(
+    active_tasks: List[str],
+    parsed_tasks: Dict[str, Dict],
+    schema: Dict,
+    config: Dict
+) -> str:
+    """Generate detailed success report when all tasks are verified."""
+
+    field_mapping = schema.get("field_mapping", {})
+    qa_field_code = field_mapping.get("qa", "QA")
+
+    status_semantics = schema.get("status_semantics", {})
+    qa_states = status_semantics.get("states", {}).get("qa", {})
+
+    verified_success_values = qa_states.get("verified_success", ["Complete", "Passed"])
+    verified_failure_pattern = qa_states.get("verified_failure_pattern", "^Failed - .*")
+
+    # Categorize tasks
+    success_tasks = []
+    failure_tasks = []
+
+    for task_code in active_tasks:
+        if task_code not in parsed_tasks:
+            # Should not happen (checked earlier), but handle gracefully
+            continue
+
+        task_data = parsed_tasks[task_code]
+        qa_status = task_data["fields"].get(qa_field_code, "Unknown")
+
+        task_info = {
+            "code": task_code,
+            "description": task_data["description"],
+            "qa_status": qa_status
+        }
+
+        # Categorize
+        if qa_status in verified_success_values:
+            success_tasks.append(task_info)
+        elif re.match(verified_failure_pattern, qa_status):
+            failure_tasks.append(task_info)
+        else:
+            # Unknown status - shouldn't happen, but include in success for safety
+            success_tasks.append(task_info)
+
+    # Build report
+    lines = []
+    lines.append("")
+    lines.append("="*70)
+    lines.append("✅ QA VERIFICATION COMPLETE - ALL TASKS VERIFIED")
+    lines.append("="*70)
+    lines.append("")
+    lines.append("### Verified Tasks")
+    lines.append("")
+
+    # Show success tasks
+    if success_tasks:
+        for task in success_tasks:
+            lines.append(f"✅ {task['code']}: {task['description']}")
+            lines.append(f"   QA Status: [{task['qa_status']}]")
+            lines.append("")
+
+    # Show failure tasks
+    if failure_tasks:
+        for task in failure_tasks:
+            lines.append(f"⚠️  {task['code']}: {task['description']}")
+            lines.append(f"   QA Status: [{task['qa_status']}]")
+            lines.append("")
+
+    lines.append("### Summary")
+    lines.append("")
+    lines.append(f"- Total Tasks Verified: {len(active_tasks)}")
+    lines.append(f"- Verified Success: {len(success_tasks)} ({', '.join([t['code'] for t in success_tasks]) if success_tasks else 'None'})")
+    lines.append(f"- Verified Failure: {len(failure_tasks)} ({', '.join([t['code'] for t in failure_tasks]) if failure_tasks else 'None'})")
+    lines.append("")
+
+    if failure_tasks:
+        lines.append("### Notes")
+        lines.append("")
+        lines.append("All tasks have been verified and documented. Tasks marked as 'Failed'")
+        lines.append("remain in active_tasks and can be addressed when ready.")
+        lines.append("")
+
+    lines.append("To clear active_tasks, use the Edit tool to update .synapse/config.json")
+    lines.append("and set third_party_workflow.active_tasks to an empty array: []")
+    lines.append("")
+    lines.append("="*70)
+
+    return "\n".join(lines)
 
 
 def generate_verification_directive(
@@ -397,8 +518,12 @@ def main():
 
     # Determine exit code
     if all_verified:
-        print("\n✅ All active tasks verified - allowing stop", file=sys.stderr)
-        sys.exit(0)
+        # Generate and print success report
+        success_report = generate_success_report(
+            active_tasks, parsed_tasks, schema, config
+        )
+        print(success_report, file=sys.stderr)
+        sys.exit(1)  # Show results to user
     else:
         # Generate and print directive
         directive = generate_verification_directive(tasks_needing_verification, config)
