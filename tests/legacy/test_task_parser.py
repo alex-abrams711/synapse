@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # Add hooks directory to Python path for importing task_parser
-hooks_dir = Path(__file__).parent.parent / "resources" / "workflows" / "feature-implementation" / "hooks"
+hooks_dir = Path(__file__).parent.parent.parent / "legacy" / "resources" / "workflows" / "feature-implementation" / "hooks"
 sys.path.insert(0, str(hooks_dir))
 
 import task_parser

@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 import subprocess
 
 # Add the hooks directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'resources', 'workflows', 'feature-implementation', 'hooks'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'legacy', 'resources', 'workflows', 'feature-implementation', 'hooks'))
 
 from change_detection import (
     get_changed_files_from_git,

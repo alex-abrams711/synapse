@@ -55,3 +55,9 @@ addopts = [
     "--strict-markers",
     "--tb=short",
 ]
+markers = [
+    "legacy: Tests for legacy implementation (pre-Option 6)",
+    "option6: Tests for Option 6 implementation",
+    "shared: Tests for shared infrastructure",
+    "integration: Integration tests",
+]

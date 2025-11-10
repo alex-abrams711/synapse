@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from subprocess import CompletedProcess
 
 # Dynamically import post_tool_use from hooks directory
-hooks_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'workflows', 'feature-implementation', 'hooks')
+hooks_path = os.path.join(os.path.dirname(__file__), '..', '..', 'legacy', 'resources', 'workflows', 'feature-implementation', 'hooks')
 post_tool_use_path = os.path.join(hooks_path, 'post-tool-use.py')
 
 spec = importlib.util.spec_from_file_location("post_tool_use", post_tool_use_path)
