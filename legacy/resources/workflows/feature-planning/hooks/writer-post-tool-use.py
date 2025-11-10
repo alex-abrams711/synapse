@@ -150,40 +150,21 @@ def validate_task_format(file_path: str) -> Tuple[bool, List[str]]:
                 )
                 continue
 
-            # Check for QA Status (Option 6: supports Failed - {reason} pattern)
+            # Check for QA Status
             qa_match = qa_status_pattern.match(line_stripped)
             if qa_match:
                 current_task_has_qa = True
-                qa_status_value = qa_match.group(3)
-
-                # Option 6 QA Status validation - allow Failed - {reason} pattern
-                valid_qa_statuses = ['Not Started', 'Passed', 'Complete']
-                is_valid_qa = (
-                    qa_status_value in valid_qa_statuses or
-                    qa_status_value.startswith('Failed - ')
+                validate_status_field(
+                    line_num=line_num,
+                    status_code=qa_match.group(2),
+                    status_value=qa_match.group(3),
+                    current_task_code=current_task_code,
+                    expected_suffix="QA",
+                    status_name="QA Status",
+                    valid_statuses=['Not Started', 'In Progress', 'Complete'],
+                    errors=errors,
+                    warnings=warnings
                 )
-
-                # If not valid, use validate_status_field with base valid statuses
-                if not is_valid_qa:
-                    validate_status_field(
-                        line_num=line_num,
-                        status_code=qa_match.group(2),
-                        status_value=qa_status_value,
-                        current_task_code=current_task_code,
-                        expected_suffix="QA",
-                        status_name="QA Status",
-                        valid_statuses=valid_qa_statuses + ['Failed - {reason}'],
-                        errors=errors,
-                        warnings=warnings
-                    )
-                else:
-                    # Still validate the status code
-                    expected_status_code = f"{current_task_code}-QA"
-                    if qa_match.group(2) != expected_status_code:
-                        errors.append(
-                            f"Line {line_num}: QA Status code '{qa_match.group(2)}' doesn't match task code. "
-                            f"Expected '{expected_status_code}'"
-                        )
                 continue
 
             # Check for User Verification Status

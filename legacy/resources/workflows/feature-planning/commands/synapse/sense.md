@@ -1,6 +1,6 @@
 ---
-allowed-tools: Bash, Read, Write, Glob, Grep, AskUserQuestion
-description: Analyze project and generate Option 6 configuration for workflows
+allowed-tools: Bash, Read, Write, Glob, Grep
+description: Analyze project and generate quality configuration for hooks (Planning Phase)
 ---
 
 The user input can guide you on project type and non-conventional configurations. You **MUST** consider it before proceeding.
@@ -9,7 +9,7 @@ User input:
 
 $ARGUMENTS
 
-# Quality Configuration Setup (Option 6)
+# Quality Configuration Setup
 
 You are tasked with analyzing the current project and adding a comprehensive quality configuration section to the Synapse config file that will be used by the quality gate hooks.
 
@@ -26,12 +26,11 @@ You are tasked with analyzing the current project and adding a comprehensive qua
    - Scan for monorepo indicators (see Monorepo Detection section below)
    - If monorepo detected, ask user to confirm project list
    - Determine whether to generate single or monorepo mode config
-
+   
 2. **Detect Third-Party Workflow Systems**:
    - Scan for known workflow frameworks (OpenSpec, GitHub Spec Kit)
    - Discover any tasks.md files across the project
    - Analyze directory structures for workflow patterns
-   - **BREAKING CHANGE**: If multiple workflows detected, ask user to choose ONE (Option 6 supports single workflow only)
    - If patterns are unclear or ambiguous, ask user for clarification
    - Handle cases where no task management system exists
 
@@ -47,15 +46,14 @@ You are tasked with analyzing the current project and adding a comprehensive qua
 4. **Update Synapse Configuration**:
    - Read the existing `.synapse/config.json` file
    - Add a `quality-config` section with discovered commands
-   - Add a `third_party_workflow` section (SINGULAR, OBJECT) with detected workflow information
-   - Include task_format_schema with Option 6 patterns
-   - Include active_tasks field (empty array by default)
-   - Add project-appropriate thresholds and settings
+   - Add a `third_party_workflows` section with detected workflow information
+   - Include project-appropriate thresholds and settings
+   - Add optional commands if available
    - Save the updated config.json file
 
-## Configuration Schema (Option 6)
+## Configuration Schema
 
-Both the `quality-config` and `third_party_workflow` sections should be added to the existing `.synapse/config.json` file with this structure:
+Both the `quality-config` and `third_party_workflows` sections should be added to the existing `.synapse/config.json` file with this structure:
 
 ```json
 {
@@ -102,56 +100,31 @@ Both the `quality-config` and `third_party_workflow` sections should be added to
       "detectedFiles": ["list of key files that influenced detection"]
     }
   },
-  "third_party_workflow": {
-    "type": "openspec|spec-kit|custom|unknown",
-    "detection_method": "known_pattern|llm_analysis|user_specified",
-    "root_directory": "openspec/|specs/|custom/path/",
-    "active_tasks_file": "tasks.md",
-    "active_tasks": [],
-    "confidence": 0.95,
-    "detected_at": "2025-01-15T10:00:00Z",
-    "task_format_schema": {
-      "version": "2.0",
-      "patterns": {
-        "task": "^\\[\\s*\\]\\s*-\\s*(?P<task_code>T\\d{3,})\\s+-\\s+(?P<description>(?!.*:).*)",
-        "subtask": "^\\s+\\[\\s*\\]\\s*-\\s*(?P<subtask_code>T\\d{3,}-ST\\d{3,})\\s*-\\s*(?P<description>.*)",
-        "status_field": "^\\s+\\[\\s*\\]\\s*-\\s*T\\d{3,}-(?P<field_code>[A-Z]{2,})\\s*-\\s*.*:\\s*\\[(?P<status_value>[^\\]]+)\\]"
-      },
-      "field_mapping": {
-        "dev_status": "DS",
-        "qa": "QA",
-        "user_verification": "UV"
-      },
-      "status_semantics": {
-        "states": {
-          "dev": {
-            "not_started": ["Not Started"],
-            "in_progress": ["In Progress"],
-            "complete": ["Complete"]
-          },
-          "qa": {
-            "not_verified": ["Not Started"],
-            "verified_success": ["Complete", "Passed"],
-            "verified_failure_pattern": "^Failed - .*"
-          },
-          "user_verification": {
-            "not_started": ["Not Started"],
-            "verified": ["Verified"]
-          }
-        }
+  "third_party_workflows": {
+    "detected": [
+      {
+        "type": "openspec|spec-kit|custom|unknown",
+        "detection_method": "known_pattern|llm_analysis|user_specified",
+        "root_directory": "openspec/|specs/|custom/path/",
+        "confidence": 0.95,
+        "detected_at": "2025-10-16T15:45:00Z"
       }
-    }
+    ],
+    "user_preferences": {
+      "no_task_management": false,
+      "custom_patterns": [
+        {
+          "pattern": "docs/*/tasks.md",
+          "type": "custom-docs-workflow"
+        }
+      ]
+    },
+    "last_scan": "2025-10-16T15:45:00Z"
   }
 }
 ```
 
-**BREAKING CHANGES from Legacy**:
-- `third_party_workflows.detected` (array) → `third_party_workflow` (object)
-- Required fields: `active_tasks_file`, `active_tasks`, `task_format_schema`
-- One workflow per project (not multiple)
-- Task format schema includes Option 6 QA Status patterns
-
-**Important**: Only add the `quality-config` and `third_party_workflow` sections to the existing config.json. Do not modify any other existing sections.
+**Important**: Only add the `quality-config` and `third_party_workflows` sections to the existing config.json. Do not modify any other existing sections.
 
 Context:
 
@@ -159,82 +132,39 @@ __Lint Levels__:
 - `strict`: Fail on any lint warnings or errors
 - `flexible`: Allow warnings, fail only on errors
 
-__Third-Party Workflow Detection Process (Option 6)__:
+__Third-Party Workflow Detection Process__:
 
 **Phase 1: Known Framework Detection (High Confidence)**
 - **OpenSpec**: Check for `openspec/` directory with `project.md` and `AGENTS.md`
   - Scan `openspec/changes/` for directories containing `tasks.md` files
   - Pattern: `openspec/changes/[change-name]/tasks.md`
-  - Set `active_tasks_file` to the most recent or user-specified tasks.md
 - **GitHub Spec Kit**: Check for `specs/` directory with numbered features
   - Scan for `specs/[###-feature-name]/` directories containing `tasks.md`
   - Pattern: `specs/[###-feature]/tasks.md`
-  - Set `active_tasks_file` to the most recent or user-specified tasks.md
 
 **Phase 2: Generic Tasks.md Discovery (Medium Confidence)**
 - Use Glob tool to find all `tasks.md` files across the project: `**/tasks.md`
 - Analyze parent directory structure for each found file
 - Extract potential feature/change names from directory paths
 
-**Phase 3: Multiple Workflows Handling (Option 6 Requirement)**
-- If multiple tasks.md files found:
-  - Use AskUserQuestion tool to ask user to select ONE workflow
-  - Present options with file paths and descriptions
-  - Store user's choice as the single workflow
-- Only one workflow can be active in Option 6
-
-**Phase 4: LLM Pattern Analysis (Variable Confidence)**
+**Phase 3: LLM Pattern Analysis (Variable Confidence)**
 - For unrecognized directory structures containing `tasks.md` files:
   - Analyze directory naming patterns and organization
   - Examine nearby files (README.md, spec.md, etc.) for context
   - Attempt to infer workflow type and categorization
 
-**Phase 5: Interactive User Resolution (User-Verified)**
+**Phase 4: Interactive User Resolution (User-Verified)**
 - If detection is uncertain or patterns are ambiguous:
   - Present discovered `tasks.md` files to the user
   - Ask user to specify workflow type or confirm "no task management system"
-  - Store user responses for configuration
+  - Store user responses in `user_preferences` for future scans
 
 **Detection Rules**:
-- If no `tasks.md` files found: Do not add `third_party_workflow` section
+- If no `tasks.md` files found: Set `no_task_management: true`
 - If patterns are clear: Use `known_pattern` detection method with high confidence
 - If patterns require analysis: Use `llm_analysis` with variable confidence
 - If user input needed: Use `user_specified` with maximum confidence
 - Always include confidence scores (0.0-1.0) for non-user-specified detections
-- **REQUIRED**: Always include `active_tasks: []` (empty array by default)
-- **REQUIRED**: Always include complete `task_format_schema` as shown above
-
-__Task Format Schema Details__:
-
-The schema defines how to parse task files. Use these exact patterns for Option 6 compatibility:
-
-**Task pattern**: Matches top-level tasks with codes
-```regex
-^\\[\\s*\\]\\s*-\\s*(?P<task_code>T\\d{3,})\\s+-\\s+(?P<description>(?!.*:).*)
-```
-Matches: `[ ] - T001 - Task description`
-
-**Subtask pattern**: Matches indented subtasks
-```regex
-^\\s+\\[\\s*\\]\\s*-\\s*(?P<subtask_code>T\\d{3,}-ST\\d{3,})\\s*-\\s*(?P<description>.*)
-```
-Matches: `  [ ] - T001-ST001 - Subtask description`
-
-**Status field pattern**: Matches status fields with values
-```regex
-^\\s+\\[\\s*\\]\\s*-\\s*T\\d{3,}-(?P<field_code>[A-Z]{2,})\\s*-\\s*.*:\\s*\\[(?P<status_value>[^\\]]+)\\]
-```
-Matches: `  [ ] - T001-QA - QA Status: [Passed]`
-
-**Field mapping**:
-- Dev Status: `DS`
-- QA Status: `QA`
-- User Verification: `UV`
-
-**QA Status semantics (Option 6)**:
-- `not_verified`: `["Not Started"]` - Hook blocks stop
-- `verified_success`: `["Complete", "Passed"]` - Hook allows stop
-- `verified_failure_pattern`: `"^Failed - .*"` - Hook allows stop (user can fix later)
 
 **Note**: This command is used during the planning phase, BEFORE feature directories are created. It detects workflow systems but does not require active features to exist yet.
 
@@ -246,47 +176,8 @@ After analysis, update the `.synapse/config.json` file with both the quality con
 - Only include commands that actually exist in the project
 - Test commands before adding them to ensure they work
 - Read the existing `.synapse/config.json` file and preserve all existing sections
-- Only add or update the `quality-config` and `third_party_workflow` sections
+- Only add or update the `quality-config` and `third_party_workflows` sections
 - Always perform third-party workflow detection even if no quality commands are found
 - For third-party workflows, be thorough but ask for user clarification when uncertain
-- **If multiple workflows found, use AskUserQuestion to let user choose ONE**
-- Always include `active_tasks: []` and complete `task_format_schema`
 - Ensure the resulting JSON is valid and well-formatted
 - During planning phase, do NOT require active feature directories or tasks files to exist
-
-## Example: Handling Multiple Workflows
-
-If you detect multiple tasks.md files:
-
-1. List all found workflows:
-```
-Found multiple task files:
-1. openspec/changes/user-auth/tasks.md (OpenSpec pattern)
-2. specs/001-api-design/tasks.md (Spec Kit pattern)
-3. tasks.md (root level)
-```
-
-2. Use AskUserQuestion:
-```json
-{
-  "question": "Which workflow would you like to use for this project?",
-  "header": "Workflow",
-  "multiSelect": false,
-  "options": [
-    {
-      "label": "OpenSpec (user-auth)",
-      "description": "openspec/changes/user-auth/tasks.md - OpenSpec workflow pattern"
-    },
-    {
-      "label": "Spec Kit (001-api-design)",
-      "description": "specs/001-api-design/tasks.md - GitHub Spec Kit pattern"
-    },
-    {
-      "label": "Root tasks.md",
-      "description": "tasks.md - Simple root-level task file"
-    }
-  ]
-}
-```
-
-3. Generate config based on user's choice (only ONE workflow)

@@ -1,5 +1,0 @@
-include README.md
-include LICENSE
-recursive-include resources *
-recursive-exclude resources __pycache__
-recursive-exclude resources *.pyc

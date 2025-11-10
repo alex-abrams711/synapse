@@ -1,0 +1,29 @@
+{
+  "name": "feature-implementation-v2",
+  "description": "Feature implementation workflow with simplified QA verification (Option 6)",
+  "version": "2.0.0",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/user-prompt-reminder.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/stop_qa_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}
