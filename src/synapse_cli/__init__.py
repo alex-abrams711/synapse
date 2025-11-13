@@ -889,8 +889,72 @@ def switch_workflow(name: str, target_dir: Path = None) -> bool:
 
     print(f"Switching to workflow '{name}'...")
 
-    # Clear existing .claude subdirectories
+    # Preserve user customizations from existing .claude/settings.json
     claude_dir = target_dir / ".claude"
+    claude_settings_path = claude_dir / "settings.json"
+    current_user_customizations = {}
+
+    if claude_settings_path.exists() and active_workflow:
+        # Extract user customizations from current active workflow
+        try:
+            with open(claude_settings_path, 'r') as f:
+                current_claude_settings = json.load(f)
+
+            # Load current active workflow settings to compare
+            current_workflow_dir = get_loaded_workflows_dir(target_dir) / active_workflow
+            current_workflow_settings_path = current_workflow_dir / "settings.json"
+
+            if current_workflow_settings_path.exists():
+                with open(current_workflow_settings_path, 'r') as f:
+                    current_workflow_settings = json.load(f)
+
+                # Extract user customizations by comparing
+                import copy
+
+                # For hooks, find user-added hooks
+                if 'hooks' in current_claude_settings:
+                    current_user_customizations['hooks'] = {}
+
+                    for hook_type, matchers in current_claude_settings['hooks'].items():
+                        workflow_matchers = current_workflow_settings.get('hooks', {}).get(hook_type, [])
+
+                        # Convert workflow hooks to comparable format (with absolute paths)
+                        comparable_workflow_matchers = []
+                        for m in workflow_matchers:
+                            comparable = copy.deepcopy(m)
+                            if 'hooks' in comparable:
+                                for h in comparable['hooks']:
+                                    if 'command' in h and '.claude/' in h['command']:
+                                        h['command'] = h['command'].replace('.claude/', str(claude_dir) + '/')
+                            comparable_workflow_matchers.append(comparable)
+
+                        # Find matchers that are not in workflow
+                        user_matchers = []
+                        for matcher in matchers:
+                            if matcher not in comparable_workflow_matchers:
+                                # Convert absolute paths back to relative
+                                user_matcher = copy.deepcopy(matcher)
+                                if 'hooks' in user_matcher:
+                                    for h in user_matcher['hooks']:
+                                        if 'command' in h:
+                                            h['command'] = h['command'].replace(str(claude_dir) + '/', '.claude/')
+                                user_matchers.append(user_matcher)
+
+                        if user_matchers:
+                            current_user_customizations['hooks'][hook_type] = user_matchers
+
+                # Extract other top-level settings
+                for key, value in current_claude_settings.items():
+                    if key != 'hooks' and key not in current_workflow_settings:
+                        current_user_customizations[key] = value
+                    elif key != 'hooks' and current_claude_settings[key] != current_workflow_settings.get(key):
+                        # Value differs from workflow default - it's a user customization
+                        current_user_customizations[key] = value
+
+        except Exception as e:
+            print(f"  ⚠ Warning: Could not preserve existing settings: {e}", file=sys.stderr)
+
+    # Clear existing .claude subdirectories
     if not claude_dir.exists():
         claude_dir.mkdir(parents=True)
 
@@ -943,11 +1007,34 @@ def switch_workflow(name: str, target_dir: Path = None) -> bool:
             with open(workflow_settings_path, 'r') as f:
                 workflow_settings = json.load(f)
 
-            # Load user settings
-            user_settings = load_user_settings(target_dir)
+            # Load saved user settings from .synapse/user-settings.json
+            saved_user_settings = load_user_settings(target_dir)
 
-            # Merge workflow and user settings
-            merged_settings = merge_settings(workflow_settings, user_settings, claude_dir)
+            # Combine current customizations with saved user settings
+            import copy
+            combined_user_settings = copy.deepcopy(saved_user_settings)
+
+            # Merge current_user_customizations into combined_user_settings
+            if current_user_customizations:
+                # Merge hooks
+                if 'hooks' in current_user_customizations:
+                    if 'hooks' not in combined_user_settings:
+                        combined_user_settings['hooks'] = {}
+                    for hook_type, matchers in current_user_customizations['hooks'].items():
+                        if hook_type not in combined_user_settings['hooks']:
+                            combined_user_settings['hooks'][hook_type] = []
+                        # Append current customizations
+                        for matcher in matchers:
+                            if matcher not in combined_user_settings['hooks'][hook_type]:
+                                combined_user_settings['hooks'][hook_type].append(matcher)
+
+                # Merge other top-level settings
+                for key, value in current_user_customizations.items():
+                    if key != 'hooks':
+                        combined_user_settings[key] = value
+
+            # Merge workflow and combined user settings
+            merged_settings = merge_settings(workflow_settings, combined_user_settings, claude_dir)
 
             # Write merged settings
             claude_settings_path = claude_dir / "settings.json"
@@ -955,7 +1042,11 @@ def switch_workflow(name: str, target_dir: Path = None) -> bool:
                 json.dump(merged_settings, f, indent=2)
                 f.write('\n')
 
-            if user_settings:
+            # Update saved user settings if we found new customizations
+            if current_user_customizations:
+                save_user_settings(combined_user_settings, target_dir)
+
+            if combined_user_settings:
                 print(f"  ✓ Merged workflow + user settings")
             else:
                 print(f"  ✓ Applied workflow settings")
