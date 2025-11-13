@@ -121,48 +121,22 @@ def detect_uv_changes(old_text: str, new_text: str) -> Tuple[bool, Dict]:
 
 
 def generate_block_message(changes: Dict, file_path: str) -> str:
-    """Generate comprehensive block message for UV field modifications."""
+    """Generate concise block message for UV field modifications."""
     lines = []
     lines.append("")
     lines.append("="*70)
     lines.append("❌ EDIT BLOCKED - User Verification Field Modification Detected")
     lines.append("="*70)
     lines.append("")
-    lines.append(f"**File**: {file_path}")
-    lines.append("")
-    lines.append("### User Verification (UV) Field Changes Detected")
-    lines.append("")
 
     for task_code, change in changes.items():
-        change_type = change["type"]
-        if change_type == "modified":
-            lines.append(f"- **{task_code}**: UV status changed")
-            lines.append(f"  - Old: [{change['old']}]")
-            lines.append(f"  - New: [{change['new']}]")
-        elif change_type == "added":
-            lines.append(f"- **{task_code}**: UV field added with value [{change['new']}]")
+        if change["type"] == "modified":
+            lines.append(f"{task_code}-UV: [{change['old']}] → [{change['new']}]")
+        elif change["type"] == "added":
+            lines.append(f"{task_code}-UV: New value [{change['new']}]")
 
     lines.append("")
-    lines.append("### Why This Was Blocked")
-    lines.append("")
-    lines.append("User Verification (UV) fields are **USER-ONLY** fields.")
-    lines.append("Agents must NEVER update or modify UV status fields.")
-    lines.append("These fields are reserved for final user acceptance and sign-off.")
-    lines.append("")
-    lines.append("### What You Can Do")
-    lines.append("")
-    lines.append("1. **Revert the UV field changes** - Remove any modifications to UV fields")
-    lines.append("2. **Update other fields only** - You can safely update:")
-    lines.append("   - Dev Status (DS) fields")
-    lines.append("   - QA Status (QA) fields")
-    lines.append("   - Task descriptions and subtasks")
-    lines.append("3. **Wait for user verification** - The user will update UV fields when ready")
-    lines.append("")
-    lines.append("### Field Ownership")
-    lines.append("")
-    lines.append("- **DS (Dev Status)**: Agent updates")
-    lines.append("- **QA (QA Status)**: Agent updates")
-    lines.append("- **UV (User Verification)**: USER ONLY - Never update")
+    lines.append("UV fields are USER-ONLY. Revert UV changes and update DS/QA only.")
     lines.append("")
     lines.append("="*70)
 

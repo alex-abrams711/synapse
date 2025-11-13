@@ -1282,6 +1282,47 @@ def copy_directory_with_conflicts(
     return copied_files, skipped_files, created_dirs
 
 
+def convert_hook_paths_to_absolute(hooks_config: Dict, target_dir: Path) -> Dict:
+    """Convert relative paths in hook commands to absolute paths.
+
+    Args:
+        hooks_config: Hook configuration dictionary from settings.json
+        target_dir: Target project directory (contains .claude/)
+
+    Returns:
+        Modified hooks_config with absolute paths
+
+    Note:
+        Converts paths like '.claude/hooks/script.py' to absolute paths.
+        Handles both bash and python commands.
+    """
+    import re
+
+    for hook_type, matchers in hooks_config.items():
+        for matcher_group in matchers:
+            for hook in matcher_group.get('hooks', []):
+                if 'command' in hook:
+                    command = hook['command']
+
+                    # Pattern to match .claude/ paths in commands
+                    # Handles: .claude/hooks/file.py, bash .claude/hooks/file.sh, etc.
+                    pattern = r'(^|\s)(\.claude/[^\s]+)'
+
+                    def replace_with_absolute(match):
+                        prefix = match.group(1)  # Space or start of string
+                        relative_path = match.group(2)  # .claude/...
+
+                        # Convert to absolute path
+                        absolute_path = str((target_dir / relative_path).resolve())
+
+                        return f"{prefix}{absolute_path}"
+
+                    # Replace all .claude/ paths with absolute paths
+                    hook['command'] = re.sub(pattern, replace_with_absolute, command)
+
+    return hooks_config
+
+
 def merge_settings_json(
     workflow_name: str,
     target_dir: Path
@@ -1307,6 +1348,7 @@ def merge_settings_json(
         - Other settings: workflow settings take precedence
         - Returns early with merged=False if workflow has no settings.json
         - Validates resulting JSON and returns error if invalid
+        - Converts relative .claude/ paths in hook commands to absolute paths
     """
     workflows_dir = get_workflows_dir()
     workflow_settings_file = workflows_dir / workflow_name / "settings.json"
@@ -1334,6 +1376,13 @@ def merge_settings_json(
     except IOError as e:
         result['error'] = f"Could not read workflow settings.json: {e}"
         return result
+
+    # Convert relative hook paths to absolute paths
+    if 'hooks' in workflow_settings:
+        workflow_settings['hooks'] = convert_hook_paths_to_absolute(
+            workflow_settings['hooks'],
+            target_dir
+        )
 
     # Target settings file
     claude_dir = target_dir / ".claude"
