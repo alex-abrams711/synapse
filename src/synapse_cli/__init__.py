@@ -217,6 +217,232 @@ def save_config(config: Dict, target_dir: Path = None) -> bool:
         return False
 
 
+# User Settings Functions
+
+def get_user_settings_path(target_dir: Path = None) -> Path:
+    """Get the path to the user settings file.
+
+    Args:
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        Path to the .synapse/user-settings.json file
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    return target_dir / ".synapse" / "user-settings.json"
+
+
+def load_user_settings(target_dir: Path = None) -> Dict:
+    """Load user-specific Claude Code settings.
+
+    Args:
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        Dictionary with user settings, or empty dict if not found
+    """
+    user_settings_path = get_user_settings_path(target_dir)
+
+    if not user_settings_path.exists():
+        return {}
+
+    try:
+        with open(user_settings_path, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Warning: Could not read user settings: {e}", file=sys.stderr)
+        return {}
+
+
+def save_user_settings(user_settings: Dict, target_dir: Path = None) -> bool:
+    """Save user-specific Claude Code settings.
+
+    Args:
+        user_settings: User settings dictionary
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        True if successful, False otherwise
+    """
+    user_settings_path = get_user_settings_path(target_dir)
+
+    # Ensure .synapse directory exists
+    synapse_dir = user_settings_path.parent
+    if not synapse_dir.exists():
+        try:
+            synapse_dir.mkdir(parents=True)
+        except IOError as e:
+            print(f"Error: Could not create .synapse directory: {e}", file=sys.stderr)
+            return False
+
+    try:
+        with open(user_settings_path, 'w') as f:
+            json.dump(user_settings, f, indent=2)
+            f.write('\n')
+        return True
+    except (TypeError, ValueError, IOError) as e:
+        print(f"Error: Could not save user settings: {e}", file=sys.stderr)
+        return False
+
+
+def merge_settings(workflow_settings: Dict, user_settings: Dict, claude_dir: Path) -> Dict:
+    """Merge workflow and user settings, with user settings taking precedence.
+
+    This function merges workflow-provided settings with user-customized settings.
+    For hooks, user hooks are appended after workflow hooks.
+
+    Args:
+        workflow_settings: Settings from the workflow
+        user_settings: User-specific settings
+        claude_dir: Path to .claude directory (for converting relative paths)
+
+    Returns:
+        Merged settings dictionary
+    """
+    import copy
+    merged = copy.deepcopy(workflow_settings)
+
+    # Merge hooks - user hooks are added after workflow hooks
+    if 'hooks' in user_settings:
+        if 'hooks' not in merged:
+            merged['hooks'] = {}
+
+        for hook_type, user_matchers in user_settings['hooks'].items():
+            if hook_type not in merged['hooks']:
+                merged['hooks'][hook_type] = []
+
+            # Append user hooks to workflow hooks
+            merged['hooks'][hook_type].extend(user_matchers)
+
+    # Merge other top-level settings (user settings override workflow settings)
+    for key, value in user_settings.items():
+        if key != 'hooks':  # hooks are already handled
+            merged[key] = value
+
+    # Convert relative .claude/ paths to absolute paths in all hooks
+    if 'hooks' in merged:
+        for hook_type, matchers in merged['hooks'].items():
+            for matcher_idx, matcher in enumerate(matchers):
+                if 'hooks' in matcher:
+                    for hook_idx, hook in enumerate(matcher['hooks']):
+                        if 'command' in hook and '.claude/' in hook['command']:
+                            merged['hooks'][hook_type][matcher_idx]['hooks'][hook_idx]['command'] = \
+                                hook['command'].replace('.claude/', str(claude_dir) + '/')
+
+    return merged
+
+
+def extract_user_settings_from_active(target_dir: Path = None) -> bool:
+    """Extract user settings from current .claude/settings.json to .synapse/user-settings.json.
+
+    This is useful for preserving custom user settings before switching workflows.
+
+    Args:
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        True if extraction successful, False otherwise
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    claude_settings_path = target_dir / ".claude" / "settings.json"
+
+    if not claude_settings_path.exists():
+        print("No .claude/settings.json found to extract from.")
+        return False
+
+    config = load_config(target_dir)
+    if not config:
+        print("Error: Synapse not initialized.", file=sys.stderr)
+        return False
+
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+    if not active_workflow:
+        print("No active workflow - cannot determine which settings are user-added.")
+        return False
+
+    # Load current claude settings
+    try:
+        with open(claude_settings_path, 'r') as f:
+            claude_settings = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error: Could not read .claude/settings.json: {e}", file=sys.stderr)
+        return False
+
+    # Load workflow settings to compare
+    workflow_dir = get_loaded_workflows_dir(target_dir) / active_workflow
+    workflow_settings_path = workflow_dir / "settings.json"
+
+    if not workflow_settings_path.exists():
+        print(f"Warning: Could not find workflow settings for '{active_workflow}'", file=sys.stderr)
+        return False
+
+    try:
+        with open(workflow_settings_path, 'r') as f:
+            workflow_settings = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error: Could not read workflow settings: {e}", file=sys.stderr)
+        return False
+
+    # Extract user-added settings by comparing with workflow settings
+    user_settings = {}
+
+    # For hooks, find user-added hooks (those not in workflow)
+    if 'hooks' in claude_settings:
+        import copy
+        claude_dir = target_dir / ".claude"
+        user_settings['hooks'] = {}
+
+        for hook_type, matchers in claude_settings['hooks'].items():
+            workflow_matchers = workflow_settings.get('hooks', {}).get(hook_type, [])
+
+            # Convert workflow hooks to comparable format (with absolute paths)
+            comparable_workflow_matchers = []
+            for m in workflow_matchers:
+                comparable = copy.deepcopy(m)
+                if 'hooks' in comparable:
+                    for h in comparable['hooks']:
+                        if 'command' in h and '.claude/' in h['command']:
+                            h['command'] = h['command'].replace('.claude/', str(claude_dir) + '/')
+                comparable_workflow_matchers.append(comparable)
+
+            # Find matchers that are not in workflow
+            user_matchers = []
+            for matcher in matchers:
+                if matcher not in comparable_workflow_matchers:
+                    # Convert absolute paths back to relative for portability
+                    user_matcher = copy.deepcopy(matcher)
+                    if 'hooks' in user_matcher:
+                        for h in user_matcher['hooks']:
+                            if 'command' in h:
+                                h['command'] = h['command'].replace(str(claude_dir) + '/', '.claude/')
+                    user_matchers.append(user_matcher)
+
+            if user_matchers:
+                user_settings['hooks'][hook_type] = user_matchers
+
+    # Extract other top-level settings that differ from workflow
+    for key, value in claude_settings.items():
+        if key != 'hooks' and key not in workflow_settings:
+            user_settings[key] = value
+
+    # Save user settings
+    if user_settings:
+        if save_user_settings(user_settings, target_dir):
+            print(f"✓ Extracted user settings to .synapse/user-settings.json")
+            if 'hooks' in user_settings:
+                hook_count = sum(len(m) for m in user_settings['hooks'].values())
+                print(f"  Found {hook_count} user-defined hook(s)")
+            return True
+        else:
+            return False
+    else:
+        print("No user-specific settings found to extract.")
+        return True
+
 
 # Validation Functions
 
@@ -710,33 +936,29 @@ def switch_workflow(name: str, target_dir: Path = None) -> bool:
             except Exception as e:
                 print(f"  ⚠ Warning: Could not copy {src_subdir}: {e}", file=sys.stderr)
 
-    # Merge settings.json
+    # Merge settings.json (workflow + user settings)
     workflow_settings_path = workflow_dir / "settings.json"
     if workflow_settings_path.exists():
         try:
             with open(workflow_settings_path, 'r') as f:
                 workflow_settings = json.load(f)
 
-            # For now, just use workflow settings directly
-            # TODO: Add user settings layer for preserving custom hooks
+            # Load user settings
+            user_settings = load_user_settings(target_dir)
+
+            # Merge workflow and user settings
+            merged_settings = merge_settings(workflow_settings, user_settings, claude_dir)
+
+            # Write merged settings
             claude_settings_path = claude_dir / "settings.json"
-
-            # Convert relative paths to absolute in hooks
-            if 'hooks' in workflow_settings:
-                for hook_type, commands in workflow_settings['hooks'].items():
-                    for i, cmd in enumerate(commands):
-                        # Replace relative .claude/ paths with absolute paths
-                        if '.claude/' in cmd:
-                            workflow_settings['hooks'][hook_type][i] = cmd.replace(
-                                '.claude/',
-                                str(claude_dir) + '/'
-                            )
-
             with open(claude_settings_path, 'w') as f:
-                json.dump(workflow_settings, f, indent=2)
+                json.dump(merged_settings, f, indent=2)
                 f.write('\n')
 
-            print(f"  ✓ Updated settings.json")
+            if user_settings:
+                print(f"  ✓ Merged workflow + user settings")
+            else:
+                print(f"  ✓ Applied workflow settings")
         except Exception as e:
             print(f"  ⚠ Warning: Could not merge settings.json: {e}", file=sys.stderr)
 
@@ -1013,6 +1235,7 @@ Examples:
   synapse workflow loaded                     Show loaded workflows
   synapse workflow active                     Show active workflow
   synapse workflow deactivate                 Deactivate active workflow (keeps it loaded)
+  synapse workflow extract-user-settings      Extract user settings from active workflow
   synapse workflow unload <name>              Unload a workflow
   synapse workflow apply <name>               Apply workflow (convenience: load + switch)
 
@@ -1042,7 +1265,7 @@ Examples:
     # First positional argument is the workflow name or subcommand
     workflow_parser.add_argument(
         "workflow_name_or_command",
-        help="Workflow name or subcommand (list, load, switch, loaded, active, deactivate, unload, apply)"
+        help="Workflow name or subcommand (list, load, switch, loaded, active, deactivate, extract-user-settings, unload, apply)"
     )
 
     # Second optional positional argument for workflow name (when using subcommands)
@@ -1107,6 +1330,10 @@ Examples:
         # Deactivate the active workflow
         elif workflow_cmd == "deactivate":
             deactivate_workflow()
+
+        # Extract user settings from active workflow
+        elif workflow_cmd == "extract-user-settings":
+            extract_user_settings_from_active()
 
         # Unload a workflow
         elif workflow_cmd == "unload":
