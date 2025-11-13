@@ -87,14 +87,9 @@ synapse workflow active    # Show currently active workflow
 synapse workflow unload feature-planning
 ```
 
-### Backward Compatibility
-
-The traditional apply/remove commands still work:
-
+**Quick apply (convenience command):**
 ```bash
 synapse workflow apply feature-implementation-v2  # Load + switch in one command
-synapse workflow status                           # Show detailed workflow status
-synapse workflow remove                           # Remove current workflow
 ```
 
 ### Benefits of Load/Switch Model
@@ -194,8 +189,7 @@ The `.synapse/config.json` file stores project configuration with these key sect
         "version": "2.0",
         "customized": false
       }
-    ],
-    "applied_workflows": [...]  // Deprecated, kept for backward compatibility
+    ]
   },
   "quality-config": {
     "projectType": "python|node|rust|...",
