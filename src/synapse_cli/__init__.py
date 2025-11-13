@@ -388,7 +388,11 @@ def init_synapse(target_dir: Path = None) -> None:
     print(f"\nDirectory structure created:")
     print(f"  {synapse_dir}/")
     print(f"  └── config.json")
-    print(f"\nUse 'synapse workflow <name>' to apply agents, hooks, and commands.")
+    print(f"\nNext steps:")
+    print(f"  1. List available workflows: synapse workflow list")
+    print(f"  2. Load a workflow: synapse workflow load <name>")
+    print(f"  3. Activate it: synapse workflow switch <name>")
+    print(f"  (or use 'synapse workflow apply <name>' to do both at once)")
 
 
 def workflow_list() -> None:

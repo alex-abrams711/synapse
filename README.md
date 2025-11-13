@@ -1,33 +1,50 @@
 # Synapse
 
-AI-first workflow system with quality gates and sub-agent orchestration for Claude Code.
+AI-first workflow system with quality gates for Claude Code.
 
 ## What is Synapse?
 
-Synapse provides standardized AI agents, quality gates, and workflow automation for Claude Code projects. It includes specialized agents for implementation and verification, automated quality enforcement hooks, and reusable workflow commands.
+Synapse provides workflow management for Claude Code projects, enabling you to load multiple workflows and switch between them instantly. Each workflow includes specialized AI agents, automated quality enforcement hooks, and project-specific commands tailored to different development phases (planning, implementation, etc.).
 
 **Tech Stack:** Python 3.9+, Claude Code integration
 
-**Capabilities:**
-- Task implementation agent with quality standards
-- Comprehensive verification agent
-- Automated quality gate enforcement
-- Workflow command system
-- Project lifecycle hooks
+**Key Features:**
+- **Multiple workflow support**: Load and switch between workflows instantly
+- **Workflow isolation**: Each workflow has its own agents, hooks, and commands
+- **Fast switching**: ~100ms to change workflows (no backup/restore overhead)
+- **Flexible workflow states**: Load, activate, deactivate, and unload as needed
+- **Quality enforcement**: Automated hooks for testing, linting, and verification
+- **Third-party integration**: Works with OpenSpec, GitHub Spec Kit, and custom task systems
 
 ## Installation
 
-**From source (current setup):**
+**From source:**
 ```bash
-cd /Users/aabrams/Workspace/AI/synapse
+git clone <repository-url>
+cd synapse
 pip install -e .
 ```
 
 **From PyPI (when published):**
 ```bash
-pip install synapse
+pip install synapse-cli
 # or
-uv tool install synapse
+uv tool install synapse-cli
+```
+
+## Quick Start
+
+```bash
+# 1. Initialize Synapse in your project
+synapse init
+
+# 2. List available workflows
+synapse workflow list
+
+# 3. Load and activate a workflow
+synapse workflow apply feature-implementation-v2
+
+# 4. Start using Claude Code with the active workflow!
 ```
 
 ## Usage
@@ -38,10 +55,13 @@ synapse init
 ```
 
 This creates a `.synapse/` directory with:
-- `agents/` - implementer.md, verifier.md
-- `commands/` - synapse/sense.md (quality config setup)
-- `hooks/` - quality gates, completion verification
 - `config.json` - project configuration and workflow tracking
+
+Workflows are then loaded and activated to populate `.claude/` with:
+- `agents/` - AI agent definitions
+- `hooks/` - quality gate scripts
+- `commands/` - slash commands (like `/sense` for quality config)
+- `settings.json` - Claude Code hook configuration
 
 **Initialize in specific directory:**
 ```bash
@@ -52,9 +72,9 @@ synapse init /path/to/project
 
 Synapse includes pre-built workflows that apply standardized configurations to your Claude Code project.
 
-### New Load/Switch Model
+### Load/Switch Workflow Management
 
-Synapse now supports loading multiple workflows and switching between them instantly:
+Synapse supports loading multiple workflows and switching between them instantly:
 
 **List available workflows:**
 ```bash
@@ -115,7 +135,7 @@ Workflows automatically set up:
 
 ## Quality Configuration & Third-Party Integration
 
-After applying a workflow, use the `/sense` command in Claude Code to analyze your project and configure quality standards:
+After loading and activating a workflow, use the `/sense` command in Claude Code to analyze your project and configure quality standards:
 
 ```bash
 /sense
@@ -217,16 +237,24 @@ The `.synapse/config.json` file stores project configuration with these key sect
 ### Project Structure
 ```
 .synapse/                 # Synapse configuration
-├── config.json         # Project settings and workflow tracking
-├── workflow-manifest.json  # Applied workflow artifacts
-└── commands/synapse/sense.md  # Quality analysis command
+├── config.json           # Project settings and workflow tracking
+└── workflows/            # Loaded workflows (copied from resources)
+    ├── feature-planning/
+    │   ├── agents/
+    │   ├── hooks/
+    │   ├── commands/
+    │   └── settings.json
+    └── feature-implementation-v2/
+        ├── hooks/
+        ├── commands/
+        └── settings.json
 
-.claude/                 # Claude Code integration (created by workflows)
-├── agents/             # AI agent definitions (implementer.md, verifier.md)
-├── hooks/              # Quality gate scripts
-├── commands/           # Additional slash commands
-└── settings.json       # Claude Code hook configuration
+.claude/                  # Active workflow projection (managed by Synapse)
+├── agents/               # AI agent definitions (from active workflow)
+├── hooks/                # Quality gate scripts (from active workflow)
+├── commands/             # Slash commands (from active workflow)
+└── settings.json         # Claude Code hook configuration (generated)
 ```
 
-That's it. Claude Code automatically detects and uses the `.synapse/` directory for enhanced AI-assisted development with quality enforcement and third-party workflow awareness.
+Claude Code automatically detects and uses both `.synapse/` for configuration and `.claude/` for active workflow integration, providing enhanced AI-assisted development with quality enforcement and third-party workflow awareness.
 
