@@ -894,62 +894,76 @@ def switch_workflow(name: str, target_dir: Path = None) -> bool:
     claude_settings_path = claude_dir / "settings.json"
     current_user_customizations = {}
 
-    if claude_settings_path.exists() and active_workflow:
-        # Extract user customizations from current active workflow
+    if claude_settings_path.exists():
         try:
             with open(claude_settings_path, 'r') as f:
                 current_claude_settings = json.load(f)
 
-            # Load current active workflow settings to compare
-            current_workflow_dir = get_loaded_workflows_dir(target_dir) / active_workflow
-            current_workflow_settings_path = current_workflow_dir / "settings.json"
+            if active_workflow:
+                # We have an active workflow - compare to extract user customizations
+                current_workflow_dir = get_loaded_workflows_dir(target_dir) / active_workflow
+                current_workflow_settings_path = current_workflow_dir / "settings.json"
 
-            if current_workflow_settings_path.exists():
-                with open(current_workflow_settings_path, 'r') as f:
-                    current_workflow_settings = json.load(f)
+                if current_workflow_settings_path.exists():
+                    with open(current_workflow_settings_path, 'r') as f:
+                        current_workflow_settings = json.load(f)
 
-                # Extract user customizations by comparing
+                    # Extract user customizations by comparing
+                    import copy
+
+                    # For hooks, find user-added hooks
+                    if 'hooks' in current_claude_settings:
+                        current_user_customizations['hooks'] = {}
+
+                        for hook_type, matchers in current_claude_settings['hooks'].items():
+                            workflow_matchers = current_workflow_settings.get('hooks', {}).get(hook_type, [])
+
+                            # Convert workflow hooks to comparable format (with absolute paths)
+                            comparable_workflow_matchers = []
+                            for m in workflow_matchers:
+                                comparable = copy.deepcopy(m)
+                                if 'hooks' in comparable:
+                                    for h in comparable['hooks']:
+                                        if 'command' in h and '.claude/' in h['command']:
+                                            h['command'] = h['command'].replace('.claude/', str(claude_dir) + '/')
+                                comparable_workflow_matchers.append(comparable)
+
+                            # Find matchers that are not in workflow
+                            user_matchers = []
+                            for matcher in matchers:
+                                if matcher not in comparable_workflow_matchers:
+                                    # Convert absolute paths back to relative
+                                    user_matcher = copy.deepcopy(matcher)
+                                    if 'hooks' in user_matcher:
+                                        for h in user_matcher['hooks']:
+                                            if 'command' in h:
+                                                h['command'] = h['command'].replace(str(claude_dir) + '/', '.claude/')
+                                    user_matchers.append(user_matcher)
+
+                            if user_matchers:
+                                current_user_customizations['hooks'][hook_type] = user_matchers
+
+                    # Extract other top-level settings
+                    for key, value in current_claude_settings.items():
+                        if key != 'hooks' and key not in current_workflow_settings:
+                            current_user_customizations[key] = value
+                        elif key != 'hooks' and current_claude_settings[key] != current_workflow_settings.get(key):
+                            # Value differs from workflow default - it's a user customization
+                            current_user_customizations[key] = value
+            else:
+                # No active workflow - treat entire .claude/settings.json as user customizations
+                # This handles the case where user manually created settings or had a deactivated workflow
                 import copy
-
-                # For hooks, find user-added hooks
-                if 'hooks' in current_claude_settings:
-                    current_user_customizations['hooks'] = {}
-
-                    for hook_type, matchers in current_claude_settings['hooks'].items():
-                        workflow_matchers = current_workflow_settings.get('hooks', {}).get(hook_type, [])
-
-                        # Convert workflow hooks to comparable format (with absolute paths)
-                        comparable_workflow_matchers = []
-                        for m in workflow_matchers:
-                            comparable = copy.deepcopy(m)
-                            if 'hooks' in comparable:
-                                for h in comparable['hooks']:
-                                    if 'command' in h and '.claude/' in h['command']:
-                                        h['command'] = h['command'].replace('.claude/', str(claude_dir) + '/')
-                            comparable_workflow_matchers.append(comparable)
-
-                        # Find matchers that are not in workflow
-                        user_matchers = []
-                        for matcher in matchers:
-                            if matcher not in comparable_workflow_matchers:
-                                # Convert absolute paths back to relative
-                                user_matcher = copy.deepcopy(matcher)
-                                if 'hooks' in user_matcher:
-                                    for h in user_matcher['hooks']:
-                                        if 'command' in h:
-                                            h['command'] = h['command'].replace(str(claude_dir) + '/', '.claude/')
-                                user_matchers.append(user_matcher)
-
-                        if user_matchers:
-                            current_user_customizations['hooks'][hook_type] = user_matchers
-
-                # Extract other top-level settings
-                for key, value in current_claude_settings.items():
-                    if key != 'hooks' and key not in current_workflow_settings:
-                        current_user_customizations[key] = value
-                    elif key != 'hooks' and current_claude_settings[key] != current_workflow_settings.get(key):
-                        # Value differs from workflow default - it's a user customization
-                        current_user_customizations[key] = value
+                current_user_customizations = copy.deepcopy(current_claude_settings)
+                # Convert absolute paths to relative in hooks for portability
+                if 'hooks' in current_user_customizations:
+                    for hook_type, matchers in current_user_customizations['hooks'].items():
+                        for matcher_idx, matcher in enumerate(matchers):
+                            if 'hooks' in matcher:
+                                for hook_idx, hook in enumerate(matcher['hooks']):
+                                    if 'command' in hook and str(claude_dir) in hook['command']:
+                                        current_user_customizations['hooks'][hook_type][matcher_idx]['hooks'][hook_idx]['command'] = \
+                                            hook['command'].replace(str(claude_dir) + '/', '.claude/')
 
         except Exception as e:
             print(f"  ⚠ Warning: Could not preserve existing settings: {e}", file=sys.stderr)
