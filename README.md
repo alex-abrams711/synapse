@@ -82,9 +82,14 @@ synapse workflow loaded    # Show all loaded workflows
 synapse workflow active    # Show currently active workflow
 ```
 
+**Deactivate active workflow:**
+```bash
+synapse workflow deactivate    # Turn off active workflow (keeps it loaded for reactivation)
+```
+
 **Unload a workflow:**
 ```bash
-synapse workflow unload feature-planning
+synapse workflow unload feature-planning    # Deactivate if active, then remove from project
 ```
 
 **Quick apply (convenience command):**

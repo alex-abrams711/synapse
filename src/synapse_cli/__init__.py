@@ -785,10 +785,22 @@ def unload_workflow(name: str, target_dir: Path = None, force: bool = False) -> 
 
     # Check if workflow is currently active
     active_workflow = config.get('workflows', {}).get('active_workflow')
-    if active_workflow == name and not force:
-        print(f"Error: Cannot unload active workflow '{name}'", file=sys.stderr)
-        print(f"Switch to a different workflow first, or use --force to unload anyway.", file=sys.stderr)
-        return False
+    if active_workflow == name:
+        if not force:
+            print(f"Error: Cannot unload active workflow '{name}'", file=sys.stderr)
+            print(f"Options:", file=sys.stderr)
+            print(f"  - Deactivate first: synapse workflow deactivate", file=sys.stderr)
+            print(f"  - Switch to another workflow: synapse workflow switch <name>", file=sys.stderr)
+            print(f"  - Force unload: synapse workflow unload {name} --force", file=sys.stderr)
+            return False
+        else:
+            # Force unload: deactivate first
+            print(f"Force unloading active workflow '{name}'...")
+            print(f"Deactivating workflow first...")
+            if not deactivate_workflow(target_dir):
+                print(f"Error: Failed to deactivate workflow", file=sys.stderr)
+                return False
+            print()
 
     print(f"Unloading workflow '{name}'...")
 
@@ -821,6 +833,77 @@ def unload_workflow(name: str, target_dir: Path = None, force: bool = False) -> 
         print(f"  ⚠ Warning: Could not update config.json", file=sys.stderr)
 
     print(f"\nWorkflow '{name}' unloaded successfully!")
+
+    return True
+
+
+def deactivate_workflow(target_dir: Path = None) -> bool:
+    """Deactivate the currently active workflow without unloading it.
+
+    This clears the .claude/ directories and sets active_workflow to None,
+    but keeps the workflow loaded in .synapse/workflows/ for easy reactivation.
+
+    Args:
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        True if workflow was deactivated successfully, False otherwise
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    # Validate synapse is initialized
+    config = load_config(target_dir)
+    if not config:
+        print(f"Error: Synapse not initialized in {target_dir}", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        return False
+
+    # Check if there's an active workflow
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+    if not active_workflow:
+        print("No active workflow to deactivate.")
+        return True
+
+    print(f"Deactivating workflow '{active_workflow}'...")
+
+    # Clear .claude/ subdirectories
+    claude_dir = target_dir / ".claude"
+    dirs_to_clear = [
+        claude_dir / "agents",
+        claude_dir / "hooks",
+        claude_dir / "commands" / "synapse"
+    ]
+
+    for dir_path in dirs_to_clear:
+        if dir_path.exists():
+            try:
+                shutil.rmtree(dir_path)
+                print(f"  ✓ Cleared {dir_path.relative_to(target_dir)}")
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not clear {dir_path}: {e}", file=sys.stderr)
+
+    # Clear settings.json (or remove workflow-specific settings)
+    settings_path = claude_dir / "settings.json"
+    if settings_path.exists():
+        try:
+            settings_path.unlink()
+            print(f"  ✓ Removed settings.json")
+        except Exception as e:
+            print(f"  ⚠ Warning: Could not remove settings.json: {e}", file=sys.stderr)
+
+    # Update config.json
+    config['workflows']['active_workflow'] = None
+    config['workflows']['last_switch'] = datetime.now().isoformat()
+
+    if save_config(config, target_dir):
+        print(f"  ✓ Updated config.json")
+    else:
+        print(f"  ⚠ Warning: Could not update config.json", file=sys.stderr)
+
+    print(f"\nWorkflow '{active_workflow}' deactivated successfully!")
+    print(f"The workflow is still loaded and can be reactivated with:")
+    print(f"  synapse workflow switch {active_workflow}")
 
     return True
 
@@ -925,6 +1008,7 @@ Examples:
   synapse workflow switch <name>              Switch to a loaded workflow
   synapse workflow loaded                     Show loaded workflows
   synapse workflow active                     Show active workflow
+  synapse workflow deactivate                 Deactivate active workflow (keeps it loaded)
   synapse workflow unload <name>              Unload a workflow
   synapse workflow apply <name>               Apply workflow (convenience: load + switch)
 
@@ -954,7 +1038,7 @@ Examples:
     # First positional argument is the workflow name or subcommand
     workflow_parser.add_argument(
         "workflow_name_or_command",
-        help="Workflow name or subcommand (list, load, switch, loaded, active, unload, apply)"
+        help="Workflow name or subcommand (list, load, switch, loaded, active, deactivate, unload, apply)"
     )
 
     # Second optional positional argument for workflow name (when using subcommands)
@@ -1015,6 +1099,10 @@ Examples:
         # Show active workflow
         elif workflow_cmd == "active":
             workflow_active()
+
+        # Deactivate the active workflow
+        elif workflow_cmd == "deactivate":
+            deactivate_workflow()
 
         # Unload a workflow
         elif workflow_cmd == "unload":
