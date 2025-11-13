@@ -50,29 +50,64 @@ synapse init /path/to/project
 
 ## Workflows
 
-Synapse includes pre-built workflows that apply standardized configurations to your Claude Code project:
+Synapse includes pre-built workflows that apply standardized configurations to your Claude Code project.
+
+### New Load/Switch Model
+
+Synapse now supports loading multiple workflows and switching between them instantly:
 
 **List available workflows:**
 ```bash
 synapse workflow list
 ```
 
-**Apply a workflow:**
+**Load a workflow into your project:**
 ```bash
-synapse workflow feature-implementation  # Feature development with verification
+synapse workflow load feature-planning
+synapse workflow load feature-implementation-v2
 ```
 
-**Check workflow status:**
+**Switch between loaded workflows:**
 ```bash
-synapse workflow status
+synapse workflow switch feature-planning        # Switch to planning
+# ... do planning work ...
+synapse workflow switch feature-implementation-v2  # Switch to implementation
+# ... do implementation work ...
+synapse workflow switch feature-planning        # Back to planning (instant!)
 ```
 
-**Remove current workflow:**
+**Check loaded workflows:**
 ```bash
-synapse workflow remove
+synapse workflow loaded    # Show all loaded workflows
+synapse workflow active    # Show currently active workflow
 ```
 
-Workflows automatically configure:
+**Unload a workflow:**
+```bash
+synapse workflow unload feature-planning
+```
+
+### Backward Compatibility
+
+The traditional apply/remove commands still work:
+
+```bash
+synapse workflow apply feature-implementation-v2  # Load + switch in one command
+synapse workflow status                           # Show detailed workflow status
+synapse workflow remove                           # Remove current workflow
+```
+
+### Benefits of Load/Switch Model
+
+- **Fast switching**: ~100ms vs 2-5 seconds (no backup/restore needed)
+- **Multiple workflows ready**: Load once, switch many times
+- **Better for iterative development**: Planning ↔ Implementation cycles
+- **Safer**: No constant backup/restore churn
+- **Encourages experimentation**: Try different workflows without friction
+
+### What Workflows Configure
+
+Workflows automatically set up:
 - Specialized AI agents for your project type
 - Quality gate hooks for automated checking
 - Project-specific commands (like `/sense` for quality configuration)
@@ -112,11 +147,30 @@ This allows Synapse to work seamlessly alongside other workflow management syste
 ## Architecture
 
 ### Workflow System
-Synapse applies workflow-specific configurations through:
-- **File Copying**: Agents, hooks, and commands from `resources/workflows/<name>/` to `.claude/`
-- **Settings Merging**: Combines workflow settings.json with existing `.claude/settings.json`
-- **Tracking**: Maintains workflow manifest in `.synapse/workflow-manifest.json` for precise removal
-- **Backup/Restore**: Creates backups before applying workflows for safe rollback
+
+Synapse uses a load/switch architecture for managing workflows:
+
+**Storage Structure:**
+```
+.synapse/
+├── config.json              # Project config with loaded workflow tracking
+└── workflows/               # Loaded workflows storage
+    ├── feature-planning/
+    └── feature-implementation-v2/
+
+.claude/                     # Active workflow projection
+├── agents/                  # Copied from active workflow
+├── hooks/                   # Copied from active workflow
+├── commands/                # Copied from active workflow
+└── settings.json           # Generated from active workflow
+```
+
+**How it works:**
+- **Load**: Copies workflow from `resources/workflows/<name>/` to `.synapse/workflows/<name>/`
+- **Switch**: Clears `.claude/` subdirectories and copies from `.synapse/workflows/<active>/`
+- **Settings**: Merges workflow settings with absolute paths
+- **Tracking**: Maintains loaded workflows list in `.synapse/config.json`
+- **Fast**: ~100ms switching (just copy, no backup/restore)
 
 ### Configuration Schema
 The `.synapse/config.json` file stores project configuration with these key sections:
@@ -126,8 +180,22 @@ The `.synapse/config.json` file stores project configuration with these key sect
   "synapse_version": "0.1.0",
   "project": { "name": "project-name", "root_directory": "/path" },
   "workflows": {
-    "active_workflow": "feature-implementation",
-    "applied_workflows": [...]
+    "active_workflow": "feature-implementation-v2",
+    "loaded_workflows": [
+      {
+        "name": "feature-planning",
+        "loaded_at": "2025-11-13T14:47:16.627155",
+        "version": "1.0",
+        "customized": false
+      },
+      {
+        "name": "feature-implementation-v2",
+        "loaded_at": "2025-11-13T14:47:48.663359",
+        "version": "2.0",
+        "customized": false
+      }
+    ],
+    "applied_workflows": [...]  // Deprecated, kept for backward compatibility
   },
   "quality-config": {
     "projectType": "python|node|rust|...",

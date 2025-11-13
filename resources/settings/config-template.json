@@ -12,6 +12,7 @@
   },
   "workflows": {
     "active_workflow": null,
+    "loaded_workflows": [],
     "applied_workflows": []
   },
   "settings": {

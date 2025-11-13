@@ -66,6 +66,25 @@ def get_workflows_dir() -> Path:
     return workflows_dir
 
 
+def get_loaded_workflows_dir(target_dir: Path = None) -> Path:
+    """Get the loaded workflows directory in .synapse.
+
+    Args:
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        Path to the .synapse/workflows directory
+
+    Note:
+        This directory stores workflows that have been loaded into the project.
+        Does not validate if the directory exists - caller should check.
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    return target_dir / ".synapse" / "workflows"
+
+
 def discover_workflows() -> List[str]:
     """Discover available workflows by scanning the workflows directory.
 
@@ -998,7 +1017,101 @@ def workflow_list() -> None:
         print()  # Blank line between workflows
 
     print(f"Total: {len(workflows)} workflow(s)")
-    print("\nUse 'synapse workflow <name>' to apply a workflow.")
+    print("\nUse 'synapse workflow load <name>' to load a workflow.")
+    print("Use 'synapse workflow <name>' to apply a workflow directly (load + switch).")
+
+
+def workflow_loaded_list() -> None:
+    """List loaded workflows in the current project."""
+    target_dir = Path.cwd()
+
+    config = load_config(target_dir)
+    if not config:
+        print("Error: Synapse not initialized in this directory", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        sys.exit(1)
+
+    loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+
+    if not loaded_workflows:
+        print("No workflows loaded in this project.")
+        print("\nTo load a workflow, use:")
+        print("  synapse workflow load <name>")
+        print("\nTo see available workflows, use:")
+        print("  synapse workflow list")
+        return
+
+    print("Loaded workflows:\n")
+
+    for workflow in loaded_workflows:
+        name = workflow.get('name', 'unknown')
+        version = workflow.get('version', 'unknown')
+        loaded_at = workflow.get('loaded_at', 'unknown')
+        customized = workflow.get('customized', False)
+
+        # Mark active workflow
+        active_marker = " [ACTIVE]" if name == active_workflow else ""
+
+        print(f"  {name}{active_marker}")
+        print(f"    Version: {version}")
+        print(f"    Loaded: {loaded_at}")
+        if customized:
+            print(f"    Status: Customized")
+        print()
+
+    print(f"Total: {len(loaded_workflows)} workflow(s) loaded")
+
+    if active_workflow:
+        print(f"\nActive workflow: {active_workflow}")
+        print(f"Use 'synapse workflow switch <name>' to switch to a different workflow.")
+    else:
+        print(f"\nNo active workflow.")
+        print(f"Use 'synapse workflow switch <name>' to activate a loaded workflow.")
+
+
+def workflow_active() -> None:
+    """Show the currently active workflow."""
+    target_dir = Path.cwd()
+
+    config = load_config(target_dir)
+    if not config:
+        print("Error: Synapse not initialized in this directory", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        sys.exit(1)
+
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+    last_switch = config.get('workflows', {}).get('last_switch')
+
+    if not active_workflow:
+        print("No active workflow.")
+        print("\nTo see loaded workflows, use:")
+        print("  synapse workflow loaded")
+        print("\nTo switch to a workflow, use:")
+        print("  synapse workflow switch <name>")
+        return
+
+    print(f"Active workflow: {active_workflow}")
+
+    if last_switch:
+        print(f"Last switched: {last_switch}")
+
+    # Show workflow info if available
+    loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+    workflow_info = next((w for w in loaded_workflows if w.get('name') == active_workflow), None)
+
+    if workflow_info:
+        version = workflow_info.get('version', 'unknown')
+        loaded_at = workflow_info.get('loaded_at', 'unknown')
+        customized = workflow_info.get('customized', False)
+
+        print(f"Version: {version}")
+        print(f"Loaded: {loaded_at}")
+        if customized:
+            print(f"Status: Customized")
+
+    print("\nTo switch to a different workflow, use:")
+    print("  synapse workflow switch <name>")
 
 
 def workflow_status() -> None:
@@ -1575,145 +1688,372 @@ def apply_workflow_directories(
     return results
 
 
+def load_workflow(name: str, target_dir: Path = None, force: bool = False) -> bool:
+    """Load a workflow into the project's .synapse/workflows/ directory.
+
+    Args:
+        name: Name of the workflow to load
+        target_dir: Target project directory. Defaults to current directory.
+        force: Force reload if workflow is already loaded
+
+    Returns:
+        True if workflow was loaded successfully, False otherwise
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    # Validate synapse is initialized
+    config = load_config(target_dir)
+    if not config:
+        print(f"Error: Synapse not initialized in {target_dir}", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        return False
+
+    # Validate workflow exists in resources
+    if not validate_workflow_exists(name):
+        print(f"Error: Workflow '{name}' not found", file=sys.stderr)
+        print("Run 'synapse workflow list' to see available workflows.", file=sys.stderr)
+        return False
+
+    # Check if already loaded
+    loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+    already_loaded = any(w.get('name') == name for w in loaded_workflows)
+
+    if already_loaded and not force:
+        print(f"Workflow '{name}' is already loaded.", file=sys.stderr)
+        print("Use --force to reload.", file=sys.stderr)
+        return False
+
+    # Get source workflow directory
+    workflows_dir = get_workflows_dir()
+    src_workflow_dir = workflows_dir / name
+
+    # Get destination directory
+    loaded_workflows_dir = get_loaded_workflows_dir(target_dir)
+    dst_workflow_dir = loaded_workflows_dir / name
+
+    # Create .synapse/workflows directory if it doesn't exist
+    if not loaded_workflows_dir.exists():
+        loaded_workflows_dir.mkdir(parents=True)
+        print(f"Created {loaded_workflows_dir}")
+
+    # If reloading, remove existing
+    if dst_workflow_dir.exists():
+        print(f"Removing existing workflow at {dst_workflow_dir}...")
+        shutil.rmtree(dst_workflow_dir)
+
+    # Copy workflow to .synapse/workflows/
+    print(f"Loading workflow '{name}'...")
+    try:
+        shutil.copytree(src_workflow_dir, dst_workflow_dir)
+        print(f"  ✓ Copied workflow to {dst_workflow_dir}")
+    except Exception as e:
+        print(f"Error: Failed to copy workflow: {e}", file=sys.stderr)
+        return False
+
+    # Update config.json to track loaded workflow
+    workflow_info = get_workflow_info(name)
+    workflow_entry = {
+        "name": name,
+        "loaded_at": datetime.now().isoformat(),
+        "version": workflow_info.get("version") if workflow_info else "unknown",
+        "customized": False
+    }
+
+    # Update loaded_workflows list
+    if already_loaded:
+        # Replace existing entry
+        loaded_workflows = [w for w in loaded_workflows if w.get('name') != name]
+
+    loaded_workflows.append(workflow_entry)
+
+    # Ensure workflows section exists
+    if 'workflows' not in config:
+        config['workflows'] = {}
+
+    config['workflows']['loaded_workflows'] = loaded_workflows
+
+    # Save updated config
+    if save_config(config, target_dir):
+        print(f"  ✓ Updated config.json")
+    else:
+        print(f"  ⚠ Warning: Could not update config.json", file=sys.stderr)
+
+    print(f"\nWorkflow '{name}' loaded successfully!")
+    print(f"Use 'synapse workflow switch {name}' to activate it.")
+
+    return True
+
+
+def switch_workflow(name: str, target_dir: Path = None) -> bool:
+    """Switch to a loaded workflow.
+
+    Args:
+        name: Name of the workflow to switch to
+        target_dir: Target project directory. Defaults to current directory.
+
+    Returns:
+        True if workflow was switched successfully, False otherwise
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    # Validate synapse is initialized
+    config = load_config(target_dir)
+    if not config:
+        print(f"Error: Synapse not initialized in {target_dir}", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        return False
+
+    # Check if workflow is loaded
+    loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+    workflow_loaded = any(w.get('name') == name for w in loaded_workflows)
+
+    if not workflow_loaded:
+        print(f"Error: Workflow '{name}' is not loaded", file=sys.stderr)
+        print(f"Run 'synapse workflow load {name}' first.", file=sys.stderr)
+        return False
+
+    # Check if already active
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+    if active_workflow == name:
+        print(f"Workflow '{name}' is already active.")
+        return True
+
+    # Get loaded workflow directory
+    loaded_workflows_dir = get_loaded_workflows_dir(target_dir)
+    workflow_dir = loaded_workflows_dir / name
+
+    if not workflow_dir.exists():
+        print(f"Error: Workflow directory not found at {workflow_dir}", file=sys.stderr)
+        print(f"The workflow may be corrupted. Try reloading it.", file=sys.stderr)
+        return False
+
+    print(f"Switching to workflow '{name}'...")
+
+    # Clear existing .claude subdirectories
+    claude_dir = target_dir / ".claude"
+    if not claude_dir.exists():
+        claude_dir.mkdir(parents=True)
+
+    dirs_to_clear = [
+        claude_dir / "agents",
+        claude_dir / "hooks",
+        claude_dir / "commands" / "synapse"
+    ]
+
+    for dir_path in dirs_to_clear:
+        if dir_path.exists():
+            try:
+                shutil.rmtree(dir_path)
+                print(f"  ✓ Cleared {dir_path.relative_to(target_dir)}")
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not clear {dir_path}: {e}", file=sys.stderr)
+
+    # Copy workflow directories to .claude/
+    copy_count = 0
+    directory_mappings = [
+        ("agents", "agents"),
+        ("hooks", "hooks"),
+        ("commands/synapse", "commands/synapse"),
+    ]
+
+    for src_subdir, dst_subdir in directory_mappings:
+        src_path = workflow_dir / src_subdir
+        dst_path = claude_dir / dst_subdir
+
+        if src_path.exists():
+            try:
+                # Create parent directory if needed
+                dst_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src_path, dst_path)
+                print(f"  ✓ Copied {src_subdir}")
+
+                # Make shell scripts executable in hooks
+                if dst_subdir == "hooks":
+                    for hook_file in dst_path.glob("*.sh"):
+                        hook_file.chmod(0o755)
+
+                copy_count += 1
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not copy {src_subdir}: {e}", file=sys.stderr)
+
+    # Merge settings.json
+    workflow_settings_path = workflow_dir / "settings.json"
+    if workflow_settings_path.exists():
+        try:
+            with open(workflow_settings_path, 'r') as f:
+                workflow_settings = json.load(f)
+
+            # For now, just use workflow settings directly
+            # TODO: Add user settings layer for preserving custom hooks
+            claude_settings_path = claude_dir / "settings.json"
+
+            # Convert relative paths to absolute in hooks
+            if 'hooks' in workflow_settings:
+                for hook_type, commands in workflow_settings['hooks'].items():
+                    for i, cmd in enumerate(commands):
+                        # Replace relative .claude/ paths with absolute paths
+                        if '.claude/' in cmd:
+                            workflow_settings['hooks'][hook_type][i] = cmd.replace(
+                                '.claude/',
+                                str(claude_dir) + '/'
+                            )
+
+            with open(claude_settings_path, 'w') as f:
+                json.dump(workflow_settings, f, indent=2)
+                f.write('\n')
+
+            print(f"  ✓ Updated settings.json")
+        except Exception as e:
+            print(f"  ⚠ Warning: Could not merge settings.json: {e}", file=sys.stderr)
+
+    # Update active_workflow in config
+    if 'workflows' not in config:
+        config['workflows'] = {}
+
+    config['workflows']['active_workflow'] = name
+    config['workflows']['last_switch'] = datetime.now().isoformat()
+
+    if save_config(config, target_dir):
+        print(f"  ✓ Updated active workflow in config.json")
+    else:
+        print(f"  ⚠ Warning: Could not update config.json", file=sys.stderr)
+
+    print(f"\nSwitched to workflow '{name}' successfully!")
+    print(f"Copied {copy_count} directory/directories")
+
+    return True
+
+
+def unload_workflow(name: str, target_dir: Path = None, force: bool = False) -> bool:
+    """Unload a workflow from the project.
+
+    Args:
+        name: Name of the workflow to unload
+        target_dir: Target project directory. Defaults to current directory.
+        force: Force unload even if workflow is currently active
+
+    Returns:
+        True if workflow was unloaded successfully, False otherwise
+    """
+    if target_dir is None:
+        target_dir = Path.cwd()
+
+    # Validate synapse is initialized
+    config = load_config(target_dir)
+    if not config:
+        print(f"Error: Synapse not initialized in {target_dir}", file=sys.stderr)
+        print("Run 'synapse init' first.", file=sys.stderr)
+        return False
+
+    # Check if workflow is loaded
+    loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+    workflow_loaded = any(w.get('name') == name for w in loaded_workflows)
+
+    if not workflow_loaded:
+        print(f"Error: Workflow '{name}' is not loaded", file=sys.stderr)
+        return False
+
+    # Check if workflow is currently active
+    active_workflow = config.get('workflows', {}).get('active_workflow')
+    if active_workflow == name and not force:
+        print(f"Error: Cannot unload active workflow '{name}'", file=sys.stderr)
+        print(f"Switch to a different workflow first, or use --force to unload anyway.", file=sys.stderr)
+        return False
+
+    print(f"Unloading workflow '{name}'...")
+
+    # Remove workflow directory
+    loaded_workflows_dir = get_loaded_workflows_dir(target_dir)
+    workflow_dir = loaded_workflows_dir / name
+
+    if workflow_dir.exists():
+        try:
+            shutil.rmtree(workflow_dir)
+            print(f"  ✓ Removed workflow directory")
+        except Exception as e:
+            print(f"Error: Could not remove workflow directory: {e}", file=sys.stderr)
+            return False
+    else:
+        print(f"  ⚠ Warning: Workflow directory not found (may already be removed)")
+
+    # Update config.json
+    loaded_workflows = [w for w in loaded_workflows if w.get('name') != name]
+    config['workflows']['loaded_workflows'] = loaded_workflows
+
+    # Clear active_workflow if this was the active one
+    if active_workflow == name:
+        config['workflows']['active_workflow'] = None
+        print(f"  ✓ Cleared active workflow")
+
+    if save_config(config, target_dir):
+        print(f"  ✓ Updated config.json")
+    else:
+        print(f"  ⚠ Warning: Could not update config.json", file=sys.stderr)
+
+    print(f"\nWorkflow '{name}' unloaded successfully!")
+
+    return True
+
+
 def workflow_apply(name: str, force: bool = False) -> None:
     """Apply a workflow to the current project.
 
+    This is a convenience command that combines load + switch.
+    For backward compatibility with the old apply/remove workflow.
+
     Args:
         name: Name of the workflow to apply
-        force: Force overwrite of existing files
+        force: Force reload if workflow is already loaded
     """
     target_dir = Path.cwd()
-
-    # Validate all preconditions (fail-fast)
-    validate_workflow_preconditions(name, target_dir)
 
     # Get workflow info for display
     info = get_workflow_info(name)
     print(f"Applying workflow: {name}")
     if info and info.get("description"):
         print(f"  {info['description']}")
+    print()
 
-    if force:
-        print("\nForce mode enabled - will overwrite existing files")
+    # Check if workflow is already loaded
+    config = load_config(target_dir)
+    if config:
+        loaded_workflows = config.get('workflows', {}).get('loaded_workflows', [])
+        already_loaded = any(w.get('name') == name for w in loaded_workflows)
 
-    # Create backup of existing .claude directory before applying workflow
-    print("\nCreating backup of existing .claude directory...")
-    backup_path = create_backup(target_dir)
-    if backup_path:
-        print(f"  Backup created at: {backup_path}")
-    else:
-        print("  No existing .claude directory found - no backup needed")
+        if already_loaded and not force:
+            print(f"Workflow '{name}' is already loaded.")
+            print(f"Switching to it...\n")
+            # Just switch, don't reload
+            if switch_workflow(name, target_dir):
+                print("\n" + "=" * 60)
+                print(f"Workflow '{name}' is now active!")
+                return
+            else:
+                sys.exit(1)
 
-    print("\nCopying workflow directories...")
-
-    # Apply workflow directories to current directory
-    results = apply_workflow_directories(name, target_dir, force)
-
-    # Display results for each directory type
-    print("\nDirectory Results:")
+    # Load the workflow
+    print("Step 1: Loading workflow")
     print("-" * 60)
-
-    total_copied = 0
-    total_skipped = 0
-    has_conflicts = False
-
-    for dir_type in ["agents", "hooks", "commands"]:
-        copied, skipped, created = results.get(dir_type, ([], [], []))
-
-        if not copied and not skipped:
-            continue
-
-        print(f"\n{dir_type.capitalize()}:")
-
-        if copied:
-            total_copied += len(copied)
-            print(f"  Copied {len(copied)} file(s):")
-            for file in copied:
-                print(f"    + {file}")
-
-        if skipped:
-            total_skipped += len(skipped)
-            has_conflicts = True
-            print(f"  Skipped {len(skipped)} file(s) (already exist):")
-            for file in skipped:
-                print(f"    ! {file}")
-
-    # Merge settings.json
-    print("\n" + "=" * 60)
-    print("Merging settings.json...")
-    print("-" * 60)
-
-    merge_result = merge_settings_json(name, target_dir)
-
-    if merge_result['error']:
-        print(f"\nError: Failed to merge settings.json", file=sys.stderr)
-        print(f"  {merge_result['error']}", file=sys.stderr)
+    if not load_workflow(name, target_dir, force=force):
+        print("\nError: Failed to load workflow", file=sys.stderr)
         sys.exit(1)
 
-    if merge_result['merged']:
-        settings_file = target_dir / ".claude" / "settings.json"
-        if merge_result['created']:
-            print(f"\nCreated new settings.json at {settings_file}")
-        else:
-            print(f"\nMerged settings into {settings_file}")
-
-        if len(merge_result['hooks_added']) > 0:
-            print(f"  Added {len(merge_result['hooks_added'])} hook(s)")
-
-        if merge_result['settings_updated']:
-            print(f"  Updated settings: {', '.join(merge_result['settings_updated'])}")
-    else:
-        print("\nNo settings.json in workflow - skipping merge")
-
-    # Save workflow tracking manifest
+    # Switch to the workflow
     print("\n" + "=" * 60)
-    print("Saving workflow manifest...")
+    print("Step 2: Switching to workflow")
     print("-" * 60)
+    if not switch_workflow(name, target_dir):
+        print("\nError: Failed to switch to workflow", file=sys.stderr)
+        sys.exit(1)
 
-    # Collect all copied files for manifest
-    copied_files_for_manifest = {}
-    for dir_type in ["agents", "hooks", "commands"]:
-        copied, skipped, created = results.get(dir_type, ([], [], []))
-        if copied:
-            copied_files_for_manifest[dir_type] = copied
-
-    # Create and save manifest
-    manifest = create_manifest(
-        workflow_name=name,
-        copied_files=copied_files_for_manifest,
-        hooks_added=merge_result['hooks_added'],
-        settings_updated=merge_result['settings_updated'],
-        target_dir=target_dir
-    )
-
-    if save_manifest(manifest, target_dir):
-        manifest_path = get_manifest_path(target_dir)
-        print(f"\nWorkflow manifest saved to {manifest_path}")
-    else:
-        print(f"\nWarning: Could not save workflow manifest", file=sys.stderr)
-
-    # Update config.json workflow tracking
     print("\n" + "=" * 60)
-    print("Updating workflow tracking in config.json...")
-    print("-" * 60)
-
-    if update_config_workflow_tracking(name, target_dir):
-        config_path = get_config_path(target_dir)
-        print(f"\nWorkflow tracking updated in {config_path}")
-        print(f"  Active workflow: {name}")
-    else:
-        print(f"\nWarning: Could not update config.json workflow tracking", file=sys.stderr)
-        print(f"  Workflow is still tracked in manifest file", file=sys.stderr)
-
-    # Summary
-    print("\n" + "=" * 60)
-    print(f"Summary: {total_copied} file(s) copied, {total_skipped} file(s) skipped")
-
-    if has_conflicts:
-        print("\nWarning: Some files were skipped because they already exist.")
-        print("Use 'synapse workflow <name> --force' to overwrite existing files.")
-
-    print("\nWorkflow applied successfully!")
+    print(f"Workflow '{name}' applied successfully!")
+    print("\nYou can now:")
+    print(f"  - Switch to other loaded workflows with: synapse workflow switch <name>")
+    print(f"  - See loaded workflows with: synapse workflow loaded")
+    print(f"  - Unload this workflow with: synapse workflow unload {name}")
 
 
 def validate_quality() -> None:
@@ -1748,13 +2088,24 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  synapse init                      Initialize synapse in current directory
-  synapse init /path/to/project     Initialize synapse in specific directory
-  synapse workflow list             List available workflows
-  synapse workflow status           Show active workflow
-  synapse workflow remove           Remove current workflow
-  synapse workflow development      Apply development workflow
-  synapse validate-quality          Validate quality commands configuration
+  synapse init                                Initialize synapse in current directory
+  synapse init /path/to/project               Initialize synapse in specific directory
+
+  # Workflow management (new load/switch model)
+  synapse workflow list                       List available workflows
+  synapse workflow load <name>                Load a workflow into project
+  synapse workflow switch <name>              Switch to a loaded workflow
+  synapse workflow loaded                     Show loaded workflows
+  synapse workflow active                     Show active workflow
+  synapse workflow unload <name>              Unload a workflow
+
+  # Backward compatibility
+  synapse workflow apply <name>               Apply workflow (load + switch)
+  synapse workflow status                     Show detailed workflow status
+  synapse workflow remove                     Remove current workflow
+
+  # Quality validation
+  synapse validate-quality                    Validate quality commands configuration
         """
     )
 
@@ -1779,7 +2130,15 @@ Examples:
     # First positional argument is the workflow name or subcommand
     workflow_parser.add_argument(
         "workflow_name_or_command",
-        help="Workflow name to apply, or subcommand (list, status, remove)"
+        help="Workflow name or subcommand (list, load, switch, loaded, active, unload, apply, status, remove)"
+    )
+
+    # Second optional positional argument for workflow name (when using subcommands)
+    workflow_parser.add_argument(
+        "workflow_name",
+        nargs="?",
+        default=None,
+        help="Workflow name (required for load, switch, unload, apply subcommands)"
     )
 
     # Optional --force flag for applying workflows
@@ -1802,17 +2161,72 @@ Examples:
         init_synapse(args.directory)
     elif args.command == "workflow":
         # Handle workflow subcommands and workflow application
-        workflow_arg = args.workflow_name_or_command
+        workflow_cmd = args.workflow_name_or_command
+        workflow_name = args.workflow_name
 
-        if workflow_arg == "list":
+        # List available workflows from resources
+        if workflow_cmd == "list":
             workflow_list()
-        elif workflow_arg == "status":
+
+        # Load a workflow into .synapse/workflows/
+        elif workflow_cmd == "load":
+            if not workflow_name:
+                print("Error: Missing workflow name", file=sys.stderr)
+                print("Usage: synapse workflow load <name>", file=sys.stderr)
+                sys.exit(1)
+            load_workflow(workflow_name, force=args.force)
+
+        # Switch to a loaded workflow
+        elif workflow_cmd == "switch":
+            if not workflow_name:
+                print("Error: Missing workflow name", file=sys.stderr)
+                print("Usage: synapse workflow switch <name>", file=sys.stderr)
+                sys.exit(1)
+            switch_workflow(workflow_name)
+
+        # Show loaded workflows
+        elif workflow_cmd == "loaded":
+            workflow_loaded_list()
+
+        # Show active workflow
+        elif workflow_cmd == "active":
+            workflow_active()
+
+        # Unload a workflow
+        elif workflow_cmd == "unload":
+            if not workflow_name:
+                print("Error: Missing workflow name", file=sys.stderr)
+                print("Usage: synapse workflow unload <name>", file=sys.stderr)
+                sys.exit(1)
+            unload_workflow(workflow_name, force=args.force)
+
+        # Show detailed workflow status
+        elif workflow_cmd == "status":
             workflow_status()
-        elif workflow_arg == "remove":
+
+        # Remove current workflow (backward compatibility)
+        elif workflow_cmd == "remove":
             workflow_remove()
+
+        # Apply workflow (backward compatibility - load + switch)
+        elif workflow_cmd == "apply":
+            if not workflow_name:
+                print("Error: Missing workflow name", file=sys.stderr)
+                print("Usage: synapse workflow apply <name>", file=sys.stderr)
+                sys.exit(1)
+            workflow_apply(workflow_name, args.force)
+
         else:
-            # Apply workflow by name
-            workflow_apply(workflow_arg, args.force)
+            # Treat as workflow name for apply behavior (backward compatibility)
+            # This allows: synapse workflow <name> (without 'apply' keyword)
+            if validate_workflow_exists(workflow_cmd):
+                # Workflow exists, apply it (backward compatibility)
+                workflow_apply(workflow_cmd, args.force)
+            else:
+                print(f"Error: Unknown workflow or subcommand '{workflow_cmd}'", file=sys.stderr)
+                print("Run 'synapse workflow list' to see available workflows.", file=sys.stderr)
+                print("Run 'synapse --help' to see available subcommands.", file=sys.stderr)
+                sys.exit(1)
     elif args.command == "validate-quality":
         validate_quality()
     else:
