@@ -422,23 +422,29 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 10: Code Cleanup
 
-- [ ] **10.1 Remove old function implementations from `__init__.py`**
-  - [ ] Keep only exports and version
-  - [ ] Remove all 40 function implementations
-  - [ ] Final `__init__.py` should be ~30 lines:
+- [x] **10.1 Remove old function implementations from `__init__.py`**
+  - [x] Keep only exports and version
+  - [x] Remove all 40 function implementations
+  - [x] Final `__init__.py` is 40 lines:
     ```python
     """Synapse CLI - AI-first workflow system."""
 
-    __version__ = "0.3.0"
+    __version__ = "0.1.0"
 
     # Public API exports
-    from .cli import main
+    from .cli import main as cli_main
     from .infrastructure.resources import get_resource_manager
     from .infrastructure.config_store import get_config_store
     from .services.workflow_service import get_workflow_service
 
+    # Legacy main for backward compatibility
+    def main():
+        import sys
+        sys.exit(cli_main())
+
     __all__ = [
         'main',
+        'cli_main',
         'get_resource_manager',
         'get_config_store',
         'get_workflow_service',
