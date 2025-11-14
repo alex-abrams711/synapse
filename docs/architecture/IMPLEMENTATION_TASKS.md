@@ -264,37 +264,37 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 6: Commands Layer
 
-- [ ] **6.1 Create `commands/init.py`**
-  - [ ] Implement `InitCommand` class
-    - [ ] `__init__(synapse_version)`
-    - [ ] `execute()` method
-    - [ ] `_prompt_agent_selection()` private method
-    - [ ] `_create_config()` private method
-  - [ ] Add `get_init_command()` factory function
+- [x] **6.1 Create `commands/init.py`**
+  - [x] Implement `InitCommand` class
+    - [x] `__init__(synapse_version)`
+    - [x] `execute()` method
+    - [x] `_prompt_agent_selection()` private method
+    - [x] `_create_config()` private method
+  - [x] Add `get_init_command()` factory function
 
-- [ ] **6.2 Create `commands/workflow.py`**
-  - [ ] Implement `WorkflowCommand` class
-    - [ ] `__init__(synapse_version)`
-    - [ ] `list()` method
-    - [ ] `status()` method
-    - [ ] `apply()` method
-    - [ ] `remove()` method
-  - [ ] Add `get_workflow_command()` factory function
+- [x] **6.2 Create `commands/workflow.py`**
+  - [x] Implement `WorkflowCommand` class
+    - [x] `__init__(synapse_version)`
+    - [x] `list()` method
+    - [x] `status()` method
+    - [x] `apply()` method
+    - [x] `remove()` method
+  - [x] Add `get_workflow_command()` factory function
 
-- [ ] **6.3 Write unit tests for commands**
-  - [ ] Create `tests/unit/commands/test_init.py`
-    - [ ] Test execute() success path
-    - [ ] Test execute() when already initialized
-    - [ ] Mock user input
-    - [ ] Mock config_store
-  - [ ] Create `tests/unit/commands/test_workflow.py`
-    - [ ] Test list()
-    - [ ] Test status()
-    - [ ] Test apply()
-    - [ ] Test remove()
-    - [ ] Mock services
-  - [ ] Verify >90% coverage
-  - [ ] Run tests: `pytest tests/unit/commands/ -v --cov=src/synapse_cli/commands`
+- [x] **6.3 Write unit tests for commands**
+  - [x] Create `tests/unit/commands/test_init.py`
+    - [x] Test execute() success path
+    - [x] Test execute() when already initialized
+    - [x] Mock user input
+    - [x] Mock config_store
+  - [x] Create `tests/unit/commands/test_workflow.py`
+    - [x] Test list()
+    - [x] Test status()
+    - [x] Test apply()
+    - [x] Test remove()
+    - [x] Mock services
+  - [x] Verify >90% coverage
+  - [x] Run tests: `pytest tests/unit/commands/ -v --cov=src/synapse_cli/commands`
 
 ### ✅ Day 7: CLI Setup
 
