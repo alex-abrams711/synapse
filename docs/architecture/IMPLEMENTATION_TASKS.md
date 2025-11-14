@@ -139,36 +139,36 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 3: Infrastructure Operations
 
-- [ ] **3.1 Create `infrastructure/backup_manager.py`**
-  - [ ] Implement `BackupManager` class
-    - [ ] `get_backup_dir()` method
-    - [ ] `create_backup()` method
-    - [ ] `get_latest_backup()` method
-    - [ ] `restore_from_backup()` method
-  - [ ] Create singleton instance
-  - [ ] Add `get_backup_manager()` factory function
+- [x] **3.1 Create `infrastructure/backup_manager.py`**
+  - [x] Implement `BackupManager` class
+    - [x] `get_backup_dir()` method
+    - [x] `create_backup()` method
+    - [x] `get_latest_backup()` method
+    - [x] `restore_from_backup()` method
+  - [x] Create singleton instance
+  - [x] Add `get_backup_manager()` factory function
 
-- [ ] **3.2 Create `infrastructure/file_operations.py`**
-  - [ ] Implement `FileOperations` class
-    - [ ] `copy_directory_with_conflicts()` static method
-    - [ ] `cleanup_empty_directories()` static method
-  - [ ] Create singleton instance
-  - [ ] Add `get_file_operations()` factory function
+- [x] **3.2 Create `infrastructure/file_operations.py`**
+  - [x] Implement `FileOperations` class
+    - [x] `copy_directory_with_conflicts()` static method
+    - [x] `cleanup_empty_directories()` static method
+  - [x] Create singleton instance
+  - [x] Add `get_file_operations()` factory function
 
-- [ ] **3.3 Write unit tests for infrastructure operations**
-  - [ ] Create `tests/unit/infrastructure/test_backup_manager.py`
-    - [ ] Test create_backup() with existing .claude
-    - [ ] Test create_backup() with no .claude
-    - [ ] Test get_latest_backup()
-    - [ ] Test restore_from_backup()
-    - [ ] Use tmp_path fixture for isolation
-  - [ ] Create `tests/unit/infrastructure/test_file_operations.py`
-    - [ ] Test copy_directory_with_conflicts() normal case
-    - [ ] Test copy_directory_with_conflicts() with conflicts
-    - [ ] Test copy_directory_with_conflicts() with force=True
-    - [ ] Test cleanup_empty_directories()
-  - [ ] Verify >90% coverage
-  - [ ] Run tests: `pytest tests/unit/infrastructure/ -v --cov=src/synapse_cli/infrastructure`
+- [x] **3.3 Write unit tests for infrastructure operations**
+  - [x] Create `tests/unit/infrastructure/test_backup_manager.py`
+    - [x] Test create_backup() with existing .claude
+    - [x] Test create_backup() with no .claude
+    - [x] Test get_latest_backup()
+    - [x] Test restore_from_backup()
+    - [x] Use tmp_path fixture for isolation
+  - [x] Create `tests/unit/infrastructure/test_file_operations.py`
+    - [x] Test copy_directory_with_conflicts() normal case
+    - [x] Test copy_directory_with_conflicts() with conflicts
+    - [x] Test copy_directory_with_conflicts() with force=True
+    - [x] Test cleanup_empty_directories()
+  - [x] Verify >90% coverage
+  - [x] Run tests: `pytest tests/unit/infrastructure/ -v --cov=src/synapse_cli/infrastructure`
 
 ### ✅ Day 4: Services Layer - Part 1
 
