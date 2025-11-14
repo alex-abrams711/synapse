@@ -766,7 +766,7 @@ Current trajectory suggests continued simplification:
 
 ## References
 
-- **Option 6 Guide**: `docs/OPTION_6_GUIDE.md`
+- **User Guide**: `docs/USER_GUIDE.md`
 - **PRD**: `docs/PRD.md`
 - **Workflow READMEs**: `resources/workflows/*/README.md`
 - **Canonical Schema**: `resources/schemas/synapse-config-schema.json`

@@ -447,7 +447,7 @@ Users can opt-in to Option 6 when ready:
 3. Apply feature-implementation-v2 workflow
 4. Learn new active_tasks management
 
-See `docs/OPTION_6_GUIDE.md` for comprehensive migration instructions.
+See `docs/USER_GUIDE.md` for comprehensive migration instructions.
 
 ### Impact on Product Vision
 

@@ -1,14 +1,16 @@
-# Option 6: Architecture and Migration Guide
+# Synapse User Guide: Simplified QA Verification
 
-This comprehensive guide covers both the architecture of Option 6 (the simplified QA verification approach) and how to migrate from legacy workflows.
+This comprehensive guide covers both the architecture of Synapse's simplified QA verification system and how to migrate from legacy workflows.
+
+> **Technical Note**: This architecture is internally called "Option 6" - the sixth design iteration that achieved the right balance of simplicity and reliability.
 
 ---
 
-## Part 1: Understanding Option 6 Architecture
+## Part 1: Understanding the Architecture
 
 ### Overview
 
-Option 6 implements a simplified, two-stage architecture for QA verification:
+Synapse implements a simplified, two-stage architecture for QA verification:
 
 1. **Hook (Simple)**: Checks if QA verification has been done for active tasks
 2. **Agent (Smart)**: Performs the actual verification using all available tools
@@ -47,7 +49,7 @@ This approach eliminates the complexity of having the hook run quality checks di
 
 ### Three-Category QA Status System
 
-This is the breakthrough that makes Option 6 work:
+This is the core innovation that makes the system work:
 
 ```
 [Not Started]        → NOT VERIFIED   → Hook blocks (Exit 2)
@@ -60,7 +62,7 @@ This is the breakthrough that makes Option 6 work:
 | Approach | Behavior | Problem |
 |----------|----------|---------|
 | **Old (Legacy)** | Can't stop until everything passes | User stuck in fix loop |
-| **Option 6** | Can stop after verification regardless of outcome | User controls fix timing |
+| **New (Current)** | Can stop after verification regardless of outcome | User controls fix timing |
 
 **The secret:** Treat `[Failed - reason]` as a **verified state**, not unverified. The task has been checked; it just didn't pass. Failed tasks stay tracked in `active_tasks` until the user decides to address them.
 
@@ -68,9 +70,9 @@ This is the breakthrough that makes Option 6 work:
 
 ### Configuration Structure
 
-**Breaking Change:** Single workflow per project (cleaner design)
+**Breaking Change from Legacy:** Single workflow per project (cleaner design)
 
-**Legacy:**
+**Old Format (Legacy):**
 ```json
 {
   "third_party_workflows": {
@@ -85,7 +87,7 @@ This is the breakthrough that makes Option 6 work:
 }
 ```
 
-**Option 6:**
+**New Format (Current):**
 ```json
 {
   "third_party_workflow": {
@@ -272,7 +274,7 @@ Agent stops successfully
 
 ### Multi-Layer Protection System
 
-Option 6 includes four complementary hooks:
+The system includes four complementary hooks for defense-in-depth protection:
 
 1. **UserPromptSubmit Hook:** Reminds agent of workflow rules on every message
 2. **PreToolUse Hook:** Blocks source edits without active_tasks set (prevents bypass)
@@ -283,7 +285,7 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 
 ---
 
-### Benefits of Option 6
+### Benefits of the Simplified Architecture
 
 **Simplicity:**
 - Hook is ~400 lines (vs 1000+)
@@ -314,6 +316,8 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 - 70-80% faster execution
 - 66% less context overhead (1 context vs 3)
 - 60% less hook code
+
+---
 
 ---
 
@@ -474,7 +478,7 @@ Understand:
 
 #### Issue: Hook allows stop but I want verification
 
-**Cause:** QA Status is `[Failed - ...]` (which allows stop in Option 6)
+**Cause:** QA Status is `[Failed - ...]` (which allows stop in current system)
 
 **Fix:** Set QA Status to `[Not Started]` if you want the hook to block
 
@@ -516,17 +520,17 @@ You don't have to migrate everything at once:
 
 **Option A: Per-feature migration**
 - Use legacy for current feature
-- Use Option 6 for next feature
+- Use new workflows for next feature
 - Migrate at natural boundaries
 
 **Option B: Hybrid approach**
 - Use feature-planning (works with both)
 - Use legacy feature-implementation for now
-- Switch to Option 6 when comfortable
+- Switch to new workflows when comfortable
 
 **Option C: Trial run**
 - Create a test branch
-- Try Option 6 on that branch
+- Try new workflows on that branch
 - Decide based on experience
 
 ---
@@ -578,7 +582,7 @@ python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&
 - Easier to debug and extend
 
 **Future-proof:**
-- New features built on Option 6
+- New features built on current architecture
 - Active development and testing
 - Community feedback incorporated
 
@@ -600,7 +604,7 @@ python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&
 
 ## Conclusion
 
-Option 6 represents a fundamental architectural improvement based on lessons learned from the legacy implementation. The key insight—"the hook should be dumb, the agent should be smart"—leads to a more reliable, maintainable, and user-friendly system.
+The current architecture represents a fundamental improvement based on lessons learned from the legacy implementation. The key insight—"the hook should be dumb, the agent should be smart"—leads to a more reliable, maintainable, and user-friendly system.
 
 Migration is optional but recommended for new work. Both systems will continue to be supported. Choose what works best for your project.
 
