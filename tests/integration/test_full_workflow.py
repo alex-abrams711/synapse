@@ -1,5 +1,5 @@
 """
-Integration test for full Option 6 workflow
+Integration test for full workflow
 
 Tests the complete workflow from start to finish:
 1. Agent starts work and sets active_tasks
@@ -18,7 +18,7 @@ import pytest
 
 
 class TestFullWorkflow:
-    """Integration test for complete Option 6 workflow"""
+    """Integration test for complete workflow"""
 
     @pytest.fixture
     def sample_project(self, tmp_path):
@@ -237,7 +237,7 @@ class TestFullWorkflow:
 
     def test_full_workflow_with_failures(self, sample_project):
         """
-        Test workflow where some tasks fail verification (Option 6)
+        Test workflow where some tasks fail verification
         """
         # Step 1: Agent starts work on T001, T002, T003
         print("\n=== Step 1: Agent sets active_tasks ===")
@@ -249,7 +249,7 @@ class TestFullWorkflow:
         self.update_task_qa_status(sample_project, "T002", "Failed - lint errors on line 45, 67")
         self.update_task_qa_status(sample_project, "T003", "Passed")
 
-        # Step 3: Agent tries to stop - hook should ALLOW (Option 6)
+        # Step 3: Agent tries to stop - hook should ALLOW (all verified)
         print("\n=== Step 3: Agent tries to stop - should be allowed (all verified) ===")
         exit_code, stderr = self.run_hook(sample_project)
         assert exit_code == 0, "Hook should allow - all tasks verified (including failures)"

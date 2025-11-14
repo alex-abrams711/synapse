@@ -69,3 +69,6 @@ test-*/
 debug*.py
 test_demonstration.py
 *_demo.py
+
+# Ruff
+.ruff-cache/
