@@ -20,116 +20,116 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 1: Core Layer
 
-- [ ] **1.1 Create directory structure**
+- [x] **1.1 Create directory structure**
   ```bash
   mkdir -p src/synapse_cli/{core,infrastructure,services,commands}
   touch src/synapse_cli/{core,infrastructure,services,commands}/__init__.py
   ```
 
-- [ ] **1.2 Create `core/types.py`**
-  - [ ] Define `WorkflowMode` enum
-  - [ ] Define `ExitCode` enum
-  - [ ] Define `ConfigDict` TypedDict
-  - [ ] Define `ManifestDict` TypedDict
-  - [ ] Add module docstring
-  - [ ] Ensure all imports work
+- [x] **1.2 Create `core/types.py`**
+  - [x] Define `WorkflowMode` enum
+  - [x] Define `ExitCode` enum
+  - [x] Define `ConfigDict` TypedDict
+  - [x] Define `ManifestDict` TypedDict
+  - [x] Add module docstring
+  - [x] Ensure all imports work
 
-- [ ] **1.3 Create `core/models.py`**
-  - [ ] Implement `ProjectConfig` dataclass
-    - [ ] Add `from_dict()` classmethod
-    - [ ] Add `to_dict()` method
-  - [ ] Implement `WorkflowManifest` dataclass
-    - [ ] Add `from_dict()` classmethod
-    - [ ] Add `to_dict()` method
-  - [ ] Implement `WorkflowInfo` dataclass
-  - [ ] Implement `BackupInfo` dataclass
-  - [ ] Add comprehensive docstrings
+- [x] **1.3 Create `core/models.py`**
+  - [x] Implement `ProjectConfig` dataclass
+    - [x] Add `from_dict()` classmethod
+    - [x] Add `to_dict()` method
+  - [x] Implement `WorkflowManifest` dataclass
+    - [x] Add `from_dict()` classmethod
+    - [x] Add `to_dict()` method
+  - [x] Implement `WorkflowInfo` dataclass
+  - [x] Implement `BackupInfo` dataclass
+  - [x] Add comprehensive docstrings
 
-- [ ] **1.4 Write unit tests for core layer**
-  - [ ] Create `tests/unit/core/test_types.py`
-  - [ ] Create `tests/unit/core/test_models.py`
-  - [ ] Test `ProjectConfig.from_dict()` and `to_dict()`
-  - [ ] Test `WorkflowManifest.from_dict()` and `to_dict()`
-  - [ ] Test all dataclass instantiation
-  - [ ] Verify >90% coverage for core layer
-  - [ ] Run tests: `pytest tests/unit/core/ -v --cov=src/synapse_cli/core`
+- [x] **1.4 Write unit tests for core layer**
+  - [x] Create `tests/unit/core/test_types.py`
+  - [x] Create `tests/unit/core/test_models.py`
+  - [x] Test `ProjectConfig.from_dict()` and `to_dict()`
+  - [x] Test `WorkflowManifest.from_dict()` and `to_dict()`
+  - [x] Test all dataclass instantiation
+  - [x] Verify >90% coverage for core layer
+  - [x] Run tests: `pytest tests/unit/core/ -v --cov=src/synapse_cli/core`
 
-- [ ] **1.5 Verify core layer**
-  - [ ] All tests pass
-  - [ ] No dependencies on existing code
-  - [ ] Type hints complete
-  - [ ] Docstrings complete
+- [x] **1.5 Verify core layer**
+  - [x] All tests pass
+  - [x] No dependencies on existing code
+  - [x] Type hints complete
+  - [x] Docstrings complete
 
 ### ✅ Day 2: Infrastructure Base
 
-- [ ] **2.1 Create `infrastructure/persistence.py`**
-  - [ ] Implement `JsonStore[T]` generic class
-    - [ ] `__init__(base_dir, filename)`
-    - [ ] `get_path(target_dir)` method
-    - [ ] `exists(target_dir)` method
-    - [ ] `load(target_dir)` method
-    - [ ] `save(data, target_dir)` method
-  - [ ] Add error handling for JSON decode errors
-  - [ ] Add comprehensive docstrings
+- [x] **2.1 Create `infrastructure/persistence.py`**
+  - [x] Implement `JsonStore[T]` generic class
+    - [x] `__init__(base_dir, filename)`
+    - [x] `get_path(target_dir)` method
+    - [x] `exists(target_dir)` method
+    - [x] `load(target_dir)` method
+    - [x] `save(data, target_dir)` method
+  - [x] Add error handling for JSON decode errors
+  - [x] Add comprehensive docstrings
 
-- [ ] **2.2 Create `infrastructure/resources.py`**
-  - [ ] Implement `ResourceManager` class
-    - [ ] `resources_dir` property (lazy)
-    - [ ] `workflows_dir` property (lazy)
-    - [ ] `_locate_resources()` method
-    - [ ] `discover_workflows()` method
-    - [ ] `get_workflow_info()` method
-    - [ ] `validate_workflow_exists()` method
-  - [ ] Create singleton instance
-  - [ ] Add `get_resource_manager()` factory function
+- [x] **2.2 Create `infrastructure/resources.py`**
+  - [x] Implement `ResourceManager` class
+    - [x] `resources_dir` property (lazy)
+    - [x] `workflows_dir` property (lazy)
+    - [x] `_locate_resources()` method
+    - [x] `discover_workflows()` method
+    - [x] `get_workflow_info()` method
+    - [x] `validate_workflow_exists()` method
+  - [x] Create singleton instance
+  - [x] Add `get_resource_manager()` factory function
 
-- [ ] **2.3 Create `infrastructure/config_store.py`**
-  - [ ] Implement `ConfigStore` class
-    - [ ] Use `JsonStore` as base
-    - [ ] `get_path()` method
-    - [ ] `load()` method
-    - [ ] `save()` method
-    - [ ] `exists()` method
-    - [ ] `update_workflow_tracking()` method
-    - [ ] `clear_workflow_tracking()` method
-    - [ ] `get_active_workflow()` method
-  - [ ] Create singleton instance
-  - [ ] Add `get_config_store()` factory function
+- [x] **2.3 Create `infrastructure/config_store.py`**
+  - [x] Implement `ConfigStore` class
+    - [x] Use `JsonStore` as base
+    - [x] `get_path()` method
+    - [x] `load()` method
+    - [x] `save()` method
+    - [x] `exists()` method
+    - [x] `update_workflow_tracking()` method
+    - [x] `clear_workflow_tracking()` method
+    - [x] `get_active_workflow()` method
+  - [x] Create singleton instance
+  - [x] Add `get_config_store()` factory function
 
-- [ ] **2.4 Create `infrastructure/manifest_store.py`**
-  - [ ] Implement `ManifestStore` class
-    - [ ] `__init__(synapse_version)`
-    - [ ] `get_path()` method
-    - [ ] `load()` method (returns WorkflowManifest)
-    - [ ] `save()` method
-    - [ ] `exists()` method
-    - [ ] `create_manifest()` method
-    - [ ] `delete()` method
-  - [ ] Add `get_manifest_store()` factory function
+- [x] **2.4 Create `infrastructure/manifest_store.py`**
+  - [x] Implement `ManifestStore` class
+    - [x] `__init__(synapse_version)`
+    - [x] `get_path()` method
+    - [x] `load()` method (returns WorkflowManifest)
+    - [x] `save()` method
+    - [x] `exists()` method
+    - [x] `create_manifest()` method
+    - [x] `delete()` method
+  - [x] Add `get_manifest_store()` factory function
 
-- [ ] **2.5 Write unit tests for infrastructure base**
-  - [ ] Create `tests/unit/infrastructure/test_persistence.py`
-    - [ ] Test JsonStore.get_path()
-    - [ ] Test JsonStore.exists()
-    - [ ] Test JsonStore.load() with missing file
-    - [ ] Test JsonStore.save() and load() roundtrip
-    - [ ] Test JsonStore error handling
-  - [ ] Create `tests/unit/infrastructure/test_resources.py`
-    - [ ] Test resource directory location
-    - [ ] Test workflow discovery
-    - [ ] Test get_workflow_info()
-    - [ ] Test validate_workflow_exists()
-  - [ ] Create `tests/unit/infrastructure/test_config_store.py`
-    - [ ] Test load/save roundtrip
-    - [ ] Test update_workflow_tracking()
-    - [ ] Test clear_workflow_tracking()
-    - [ ] Test get_active_workflow()
-  - [ ] Create `tests/unit/infrastructure/test_manifest_store.py`
-    - [ ] Test create_manifest()
-    - [ ] Test load/save roundtrip
-    - [ ] Test delete()
-  - [ ] Verify >90% coverage
-  - [ ] Run tests: `pytest tests/unit/infrastructure/ -v --cov=src/synapse_cli/infrastructure`
+- [x] **2.5 Write unit tests for infrastructure base**
+  - [x] Create `tests/unit/infrastructure/test_persistence.py`
+    - [x] Test JsonStore.get_path()
+    - [x] Test JsonStore.exists()
+    - [x] Test JsonStore.load() with missing file
+    - [x] Test JsonStore.save() and load() roundtrip
+    - [x] Test JsonStore error handling
+  - [x] Create `tests/unit/infrastructure/test_resources.py`
+    - [x] Test resource directory location
+    - [x] Test workflow discovery
+    - [x] Test get_workflow_info()
+    - [x] Test validate_workflow_exists()
+  - [x] Create `tests/unit/infrastructure/test_config_store.py`
+    - [x] Test load/save roundtrip
+    - [x] Test update_workflow_tracking()
+    - [x] Test clear_workflow_tracking()
+    - [x] Test get_active_workflow()
+  - [x] Create `tests/unit/infrastructure/test_manifest_store.py`
+    - [x] Test create_manifest()
+    - [x] Test load/save roundtrip
+    - [x] Test delete()
+  - [x] Verify >90% coverage
+  - [x] Run tests: `pytest tests/unit/infrastructure/ -v --cov=src/synapse_cli/infrastructure`
 
 ---
 
