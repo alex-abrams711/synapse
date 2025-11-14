@@ -526,7 +526,6 @@ tests/
 **Pytest Markers**:
 ```python
 markers = [
-    "legacy: Tests for legacy implementation",
     "option6: Tests for Option 6 implementation",
     "shared: Tests for shared infrastructure",
     "integration: Integration tests",

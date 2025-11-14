@@ -253,7 +253,6 @@ pytest tests/integration/test_full_workflow.py -v
 - [Feature Implementation v2 README](workflows/feature-implementation-v2/README.md)
 - [Feature Planning README](workflows/feature-planning/README.md)
 - [Migration Guide](../MIGRATION_GUIDE.md)
-- [Legacy README](../legacy/README.md)
 
 ## Contributing
 
@@ -273,5 +272,3 @@ When adding new workflows to this directory:
 **Status:** Active development, production ready
 
 **Compatibility:** Requires new config structure (see schema)
-
-**Legacy:** Original workflows in `legacy/resources/`
