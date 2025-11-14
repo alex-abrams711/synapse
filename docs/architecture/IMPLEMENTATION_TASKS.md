@@ -172,43 +172,43 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 4: Services Layer - Part 1
 
-- [ ] **4.1 Create `services/validation_service.py`**
-  - [ ] Implement `ValidationService` class
-    - [ ] `__init__()` - inject dependencies
-    - [ ] `validate_synapse_initialized()` method
-    - [ ] `validate_workflow_exists()` method
-    - [ ] `check_uv_available()` method
-    - [ ] `validate_workflow_preconditions()` method
-    - [ ] `validate_removal_preconditions()` method
-  - [ ] Create singleton instance
-  - [ ] Add `get_validation_service()` factory function
+- [x] **4.1 Create `services/validation_service.py`**
+  - [x] Implement `ValidationService` class
+    - [x] `__init__()` - inject dependencies
+    - [x] `validate_synapse_initialized()` method
+    - [x] `validate_workflow_exists()` method
+    - [x] `check_uv_available()` method
+    - [x] `validate_workflow_preconditions()` method
+    - [x] `validate_removal_preconditions()` method
+  - [x] Create singleton instance
+  - [x] Add `get_validation_service()` factory function
 
-- [ ] **4.2 Create `services/settings_service.py`**
-  - [ ] Implement `SettingsService` class
-    - [ ] `__init__()` - inject dependencies
-    - [ ] `convert_hook_paths_to_absolute()` method
-    - [ ] `merge_settings_json()` method
-    - [ ] `_merge_hooks()` private method
-    - [ ] `remove_hooks_from_settings()` method
-  - [ ] Create singleton instance
-  - [ ] Add `get_settings_service()` factory function
+- [x] **4.2 Create `services/settings_service.py`**
+  - [x] Implement `SettingsService` class
+    - [x] `__init__()` - inject dependencies
+    - [x] `convert_hook_paths_to_absolute()` method
+    - [x] `merge_settings_json()` method
+    - [x] `_merge_hooks()` private method
+    - [x] `remove_hooks_from_settings()` method
+  - [x] Create singleton instance
+  - [x] Add `get_settings_service()` factory function
 
-- [ ] **4.3 Write unit tests for services - part 1**
-  - [ ] Create `tests/unit/services/test_validation_service.py`
-    - [ ] Test validate_synapse_initialized()
-    - [ ] Test validate_workflow_exists()
-    - [ ] Test check_uv_available()
-    - [ ] Test validate_workflow_preconditions() success
-    - [ ] Test validate_workflow_preconditions() failures
-    - [ ] Mock dependencies (config_store, resource_manager)
-  - [ ] Create `tests/unit/services/test_settings_service.py`
-    - [ ] Test convert_hook_paths_to_absolute()
-    - [ ] Test merge_settings_json() - new file
-    - [ ] Test merge_settings_json() - existing file
-    - [ ] Test _merge_hooks()
-    - [ ] Test remove_hooks_from_settings()
-  - [ ] Verify >90% coverage
-  - [ ] Run tests: `pytest tests/unit/services/ -v --cov=src/synapse_cli/services`
+- [x] **4.3 Write unit tests for services - part 1**
+  - [x] Create `tests/unit/services/test_validation_service.py`
+    - [x] Test validate_synapse_initialized()
+    - [x] Test validate_workflow_exists()
+    - [x] Test check_uv_available()
+    - [x] Test validate_workflow_preconditions() success
+    - [x] Test validate_workflow_preconditions() failures
+    - [x] Mock dependencies (config_store, resource_manager)
+  - [x] Create `tests/unit/services/test_settings_service.py`
+    - [x] Test convert_hook_paths_to_absolute()
+    - [x] Test merge_settings_json() - new file
+    - [x] Test merge_settings_json() - existing file
+    - [x] Test _merge_hooks()
+    - [x] Test remove_hooks_from_settings()
+  - [x] Verify >90% coverage
+  - [x] Run tests: `pytest tests/unit/services/ -v --cov=src/synapse_cli/services`
 
 ### ✅ Day 5: Services Layer - Part 2
 
