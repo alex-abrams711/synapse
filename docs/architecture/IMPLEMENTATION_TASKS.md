@@ -298,45 +298,45 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 7: CLI Setup
 
-- [ ] **7.1 Create `cli.py`**
-  - [ ] Implement `create_parser()` function
-    - [ ] Define init subcommand
-    - [ ] Define workflow subcommand with args
-    - [ ] Add help text and examples
-  - [ ] Implement `dispatch_command()` function
-    - [ ] Route to init command
-    - [ ] Route to workflow commands
-    - [ ] Handle list/status/remove/apply
-  - [ ] Implement `main()` function
-    - [ ] Parse args
-    - [ ] Dispatch to commands
+- [x] **7.1 Create `cli.py`**
+  - [x] Implement `create_parser()` function
+    - [x] Define init subcommand
+    - [x] Define workflow subcommand with args
+    - [x] Add help text and examples
+  - [x] Implement `dispatch_command()` function
+    - [x] Route to init command
+    - [x] Route to workflow commands
+    - [x] Handle list/status/remove/apply
+  - [x] Implement `main()` function
+    - [x] Parse args
+    - [x] Dispatch to commands
 
-- [ ] **7.2 Update `__init__.py` for parallel paths**
-  - [ ] Keep all existing functions
-  - [ ] Add new exports:
+- [x] **7.2 Update `__init__.py` for parallel paths**
+  - [x] Keep all existing functions
+  - [x] Add new exports:
     ```python
     from .cli import main as cli_main
     from .infrastructure.config_store import get_config_store
     from .services.workflow_service import get_workflow_service
     ```
-  - [ ] Add to `__all__`
+  - [x] Add to `__all__`
 
-- [ ] **7.3 Update `__main__.py`**
-  - [ ] Keep old main() as fallback
-  - [ ] Add try/except to use new CLI
-  - [ ] Ensure backward compatibility
+- [x] **7.3 Update `__main__.py`**
+  - [x] Keep old main() as fallback
+  - [x] Add try/except to use new CLI
+  - [x] Ensure backward compatibility
 
-- [ ] **7.4 Write CLI tests**
-  - [ ] Create `tests/unit/test_cli.py`
-    - [ ] Test create_parser()
-    - [ ] Test dispatch_command() routing
-    - [ ] Test main() integration
+- [x] **7.4 Write CLI tests**
+  - [x] Create `tests/unit/test_cli.py`
+    - [x] Test create_parser()
+    - [x] Test dispatch_command() routing
+    - [x] Test main() integration
   - [ ] Create `tests/e2e/test_cli_commands.py`
     - [ ] Test `synapse init` end-to-end
     - [ ] Test `synapse workflow list`
     - [ ] Test `synapse workflow status`
     - [ ] Use subprocess to invoke CLI
-  - [ ] Run all tests: `pytest -v --cov=src/synapse_cli`
+  - [x] Run all tests: `pytest -v --cov=src/synapse_cli`
 
 - [ ] **7.5 Manual testing**
   - [ ] Install package in editable mode: `pip install -e .`

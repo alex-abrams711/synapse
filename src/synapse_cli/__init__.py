@@ -1820,5 +1820,25 @@ Examples:
         sys.exit(1)
 
 
+# New modular architecture exports
+# These provide the new clean API while maintaining backward compatibility
+from .cli import main as cli_main
+from .infrastructure.config_store import get_config_store
+from .infrastructure.resources import get_resource_manager
+from .services.workflow_service import get_workflow_service
+
+# Export list for public API
+__all__ = [
+    # Legacy main function (for backward compatibility)
+    'main',
+    # New modular API
+    'cli_main',
+    'get_config_store',
+    'get_resource_manager',
+    'get_workflow_service',
+    '__version__'
+]
+
+
 if __name__ == "__main__":
     main()
