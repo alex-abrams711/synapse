@@ -409,7 +409,7 @@ synapse/
 
 ## Design Decisions
 
-### 1. "Dumb Hooks, Smart Agent" (Option 6)
+### 1. "Dumb Hooks, Smart Agent"
 
 **Decision**: Hooks check status only; agents perform verification
 
@@ -422,10 +422,10 @@ synapse/
 - Agents can generate detailed reports
 
 **Result**:
-- Hook code reduced from 1000+ → 400 lines
-- 70-80% faster execution
-- 60-70% fewer tokens used
-- More reliable verification
+- Compact hook code (~400 lines)
+- Fast execution (0.2-0.5s)
+- Token-efficient verification
+- Reliable quality enforcement
 
 ### 2. Three-Category QA Status
 
@@ -437,10 +437,10 @@ synapse/
 - `[Failed - {reason}]` - Verified failure → Allow
 
 **Rationale**:
-- Old approach: User stuck in fix loop
-- New approach: User controls fix timing
+- User controls fix timing (not forced into fix loop)
 - Failed tasks stay tracked for later
 - Enforces verification without forcing fixes
+- Flexibility without compromising quality
 
 **Result**:
 - Users can stop after verification
@@ -457,7 +457,7 @@ synapse/
 - Easier to reason about
 - Most projects use one task format
 
-**Migration**: Sense command prompts user to choose if multiple detected
+**Note**: Sense command prompts user to choose if multiple workflows detected
 
 ### 4. Schema-Driven Task Parsing
 
@@ -608,14 +608,14 @@ pytest tests/ -m option6
 - **Full tool access**: No artificial limitations
 - **Context-aware**: Uses conversation history
 
-### Comparison with Legacy
+### Performance Metrics
 
-| Metric | Legacy | Option 6 | Improvement |
-|--------|--------|----------|-------------|
-| Hook execution | 1-3s | 0.2-0.5s | 70-80% faster |
-| Token usage | High | Low | 60-70% reduction |
-| Context overhead | 3 contexts | 1 context | 66% reduction |
-| Hook code size | 1000+ lines | 400 lines | 60% reduction |
+| Metric | Value |
+|--------|-------|
+| Hook execution | 0.2-0.5s |
+| Token efficiency | 60-70% optimized |
+| Context usage | Single context |
+| Hook code size | ~400 lines |
 
 ---
 
@@ -757,10 +757,10 @@ echo $?
 
 ### Architectural Evolution
 
-Current trajectory suggests continued simplification:
-- **Phase 1**: Sub-agent orchestration (legacy)
-- **Phase 2**: Hook-based quality gates (Option 6)
-- **Phase 3**: ??? (likely further agent empowerment)
+Current trajectory suggests continued agent empowerment:
+- Further simplification of hooks
+- Enhanced agent tool access
+- Improved context awareness
 
 ---
 
@@ -778,4 +778,4 @@ Current trajectory suggests continued simplification:
 
 **Last Updated**: November 14, 2024
 
-**Version**: 1.0 (Option 6 Architecture)
+**Version**: 1.0

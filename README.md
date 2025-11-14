@@ -9,11 +9,11 @@ Synapse provides standardized workflows, quality gates, and automation for Claud
 **Tech Stack:** Python 3.9+, Claude Code integration
 
 **Capabilities:**
-- Simplified QA verification (Option 6 architecture)
+- Simplified QA verification with user-controlled fix timing
 - Automated quality gate enforcement
 - Schema-driven task format detection
 - Multi-layer protection against bypassing quality checks
-- User control over fix timing (stop with failures)
+- Stop with failures - fix issues on your schedule
 
 ## Installation
 
@@ -56,7 +56,7 @@ synapse workflow list
 
 **Apply a workflow:**
 ```bash
-synapse workflow feature-implementation-v2  # Option 6: Simplified QA verification
+synapse workflow feature-implementation-v2  # QA verification with quality gates
 synapse workflow feature-planning           # Task breakdown and planning
 ```
 
@@ -112,10 +112,9 @@ This allows Synapse to work seamlessly alongside other workflow management syste
 
 ### Workflow System
 
-**Option 6 Architecture:**
 Synapse uses a simplified two-stage verification approach:
-- **Dumb Hooks**: Simple checkers (~400 lines) that enforce workflow rules
-- **Smart Agent**: Performs actual verification with full tool access
+- **Hooks**: Simple checkers (~400 lines) that enforce workflow rules
+- **Agent**: Performs actual verification with full tool access
 
 Synapse applies workflow-specific configurations through:
 - **File Copying**: Hooks and commands from `resources/workflows/<name>/` to `.claude/`

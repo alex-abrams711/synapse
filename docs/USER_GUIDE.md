@@ -1,55 +1,43 @@
-# Synapse User Guide: Simplified QA Verification
+# Synapse User Guide
 
-This comprehensive guide covers both the architecture of Synapse's simplified QA verification system and how to migrate from legacy workflows.
-
-> **Technical Note**: This architecture is internally called "Option 6" - the sixth design iteration that achieved the right balance of simplicity and reliability.
+This guide explains how to use Synapse's QA verification system for Claude Code projects.
 
 ---
 
-## Part 1: Understanding the Architecture
+## Overview
 
-### Overview
-
-Synapse implements a simplified, two-stage architecture for QA verification:
+Synapse implements a two-stage architecture for QA verification:
 
 1. **Hook (Simple)**: Checks if QA verification has been done for active tasks
 2. **Agent (Smart)**: Performs the actual verification using all available tools
 
-This approach eliminates the complexity of having the hook run quality checks directly.
-
-**Key Innovation:** The hook enforces verification (blocks if QA Status = [Not Started]) but allows stop with failures (allows if QA Status = [Failed - reason]). This gives users full control over when to fix vs. defer issues.
+**Key Feature:** The hook enforces verification (blocks if QA Status = [Not Started]) but allows you to stop with failures (allows if QA Status = [Failed - reason]). This gives you full control over when to fix vs. defer issues.
 
 ---
 
-### The Core Philosophy
+## Core Philosophy
 
 **"The hook should be dumb, the agent should be smart."**
-
-**Why?**
 
 **Hooks are limited:**
 - Restricted execution environment
 - No conversation context
 - Prone to timeouts
-- Hard to debug
 - Can't ask questions
 
 **Agents are powerful:**
-- Full tool access (grep, read, bash, playwright, etc.)
+- Full tool access (bash, grep, read, playwright, etc.)
 - Complete conversation context
 - Can ask clarifying questions
 - Can provide detailed reports
-- Can make informed decisions
 
 **Solution:**
-- Hook: Simple status checker (~400 lines) - only reads config and checks QA Status values
-- Agent: Smart verifier (unlimited) - runs all quality checks, analyzes results, updates status
+- Hook: Simple status checker (~400 lines) - only reads config and checks QA Status
+- Agent: Smart verifier - runs all quality checks, analyzes results, updates status
 
 ---
 
-### Three-Category QA Status System
-
-This is the core innovation that makes the system work:
+## Three-Category QA Status System
 
 ```
 [Not Started]        → NOT VERIFIED   → Hook blocks (Exit 2)
@@ -57,37 +45,16 @@ This is the core innovation that makes the system work:
 [Failed - {reason}]  → VERIFIED FAILURE → Hook allows (Exit 1)
 ```
 
-**Why this matters:**
+**The Innovation:** Failed tasks are treated as **verified**. The task has been checked; it just didn't pass. Failed tasks stay tracked in `active_tasks` until you decide to fix them. This means you can stop working after verification, even if some tests failed.
 
-| Approach | Behavior | Problem |
-|----------|----------|---------|
-| **Old (Legacy)** | Can't stop until everything passes | User stuck in fix loop |
-| **New (Current)** | Can stop after verification regardless of outcome | User controls fix timing |
-
-**The secret:** Treat `[Failed - reason]` as a **verified state**, not unverified. The task has been checked; it just didn't pass. Failed tasks stay tracked in `active_tasks` until the user decides to address them.
+**Why this matters:** You control when to fix issues. No more being stuck in a fix loop - verify everything, then decide what to address now vs. later.
 
 ---
 
-### Configuration Structure
+## Configuration
 
-**Breaking Change from Legacy:** Single workflow per project (cleaner design)
+Your `.synapse/config.json` contains the workflow configuration:
 
-**Old Format (Legacy):**
-```json
-{
-  "third_party_workflows": {
-    "detected": [
-      {
-        "type": "openspec",
-        "active_tasks_file": "tasks.md",
-        "task_format_schema": {...}
-      }
-    ]
-  }
-}
-```
-
-**New Format (Current):**
 ```json
 {
   "third_party_workflow": {
@@ -97,7 +64,11 @@ This is the core innovation that makes the system work:
     "task_format_schema": {
       "version": "2.0",
       "patterns": {...},
-      "field_mapping": {...},
+      "field_mapping": {
+        "dev_status": "DS",
+        "qa": "QA",
+        "user_verification": "UV"
+      },
       "status_semantics": {
         "states": {
           "qa": {
@@ -112,14 +83,15 @@ This is the core innovation that makes the system work:
 }
 ```
 
-**Key changes:**
-- `third_party_workflows.detected` (array) → `third_party_workflow` (object)
-- Added required `active_tasks` field for tracking work in progress
-- One workflow per project (simpler, cleaner)
+**Key Fields:**
+- `type`: Workflow system (openspec, spec-kit, custom)
+- `active_tasks_file`: Path to your tasks file
+- `active_tasks`: Array of task codes being worked on (e.g., ["T001", "T002"])
+- `task_format_schema`: Schema defining how to parse your tasks
 
 ---
 
-### Exit Code Strategy
+## Exit Codes
 
 | Exit Code | Meaning | Use Case |
 |-----------|---------|----------|
@@ -127,26 +99,20 @@ This is the core innovation that makes the system work:
 | **1** | ⚠️ Warning | Show message to user (allow stop) |
 | **2** | ❌ Block | Verification required, cannot stop |
 
-**Exit Code Scenarios:**
-
-**Exit 0 - Allow Stop:**
-- All tasks in `active_tasks` have verified QA Status (success OR failure)
-- OR `active_tasks` is empty
-
-**Exit 1 - Warning (Allow Stop):**
-- Used for verification reports
-- All tasks verified, show completion message to user
-
-**Exit 2 - Block (Verification Required):**
+**When hooks block (Exit 2):**
 - No active tasks set when needed
 - Task file doesn't exist
 - Active task code not found in task file
 - Task missing QA Status field
 - Any active task has QA Status = [Not Started]
 
+**When hooks allow (Exit 0 or 1):**
+- All tasks in `active_tasks` have verified QA Status (passed OR failed)
+- OR `active_tasks` is empty
+
 ---
 
-### Active Tasks Management
+## Active Tasks Management
 
 **Agent Responsibilities:**
 1. **Starting work:** Set `active_tasks: ["T001", "T002"]` in config
@@ -167,7 +133,7 @@ This is the core innovation that makes the system work:
 
 ---
 
-### Workflow Example: All Tasks Pass
+## Workflow: All Tasks Pass
 
 ```
 1. User: "Implement feature X"
@@ -186,7 +152,7 @@ This is the core innovation that makes the system work:
 
 ---
 
-### Workflow Example: Some Tasks Fail
+## Workflow: Some Tasks Fail
 
 ```
 1. Agent: Sets active_tasks: ["T001", "T002", "T003"]
@@ -224,7 +190,7 @@ IF USER SAYS YES:
 
 ---
 
-### Continuing Work on Failed Tasks
+## Continuing Work on Failed Tasks
 
 **Next session after leaving T002 failed:**
 
@@ -248,9 +214,22 @@ Agent stops successfully
 
 ---
 
-### Hook Architecture Details
+## Multi-Layer Protection System
 
-**File:** `resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py`
+The system includes four complementary hooks for defense-in-depth protection:
+
+1. **UserPromptSubmit Hook:** Reminds agent of workflow rules on every message
+2. **PreToolUse Hook:** Blocks source edits without active_tasks set
+3. **PostToolUse Hook:** Blocks unauthorized User Verification field modifications
+4. **Stop Hook:** Validates QA status before allowing completion
+
+This defense-in-depth approach ensures quality gates can't be bypassed.
+
+---
+
+## Hook Architecture
+
+**Stop Hook File:** `resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py`
 
 **What it does:**
 1. Load `.synapse/config.json`
@@ -266,42 +245,27 @@ Agent stops successfully
 - Fix anything (agent's job)
 - Make decisions (user's job)
 
-**Size:** ~400 lines (vs 1000+ in legacy)
+**Size:** ~400 lines
 
 **Dependencies:** Python 3.8+ standard library only
 
 ---
 
-### Multi-Layer Protection System
-
-The system includes four complementary hooks for defense-in-depth protection:
-
-1. **UserPromptSubmit Hook:** Reminds agent of workflow rules on every message
-2. **PreToolUse Hook:** Blocks source edits without active_tasks set (prevents bypass)
-3. **PostToolUse Hook:** Blocks unauthorized User Verification field modifications
-4. **Stop Hook:** Validates QA status before allowing completion
-
-This defense-in-depth approach ensures quality gates can't be bypassed.
-
----
-
-### Benefits of the Simplified Architecture
+## Benefits
 
 **Simplicity:**
-- Hook is ~400 lines (vs 1000+)
-- Single responsibility: check QA status only
+- Hook has single responsibility: check QA status
 - No quality check execution in hook
 - No subprocess management or timeouts
 
 **Reliability:**
 - Fewer moving parts = fewer failure points
-- No file system traversal (no hanging)
-- No external command execution (no timeout issues)
-- Schema-driven parsing (flexible format support)
+- No file system traversal
+- Schema-driven parsing supports any format
 
 **User Experience:**
-- Stop with failures (user controls fix timing)
-- Clear progress indication (partial verification)
+- Stop with failures - you control fix timing
+- Clear progress indication
 - Failed tasks stay tracked across sessions
 - Explicit approval required for fixes
 
@@ -309,189 +273,48 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 - Full tool access (playwright, grep, read, bash, etc.)
 - Context-aware verification
 - Can explain what it's checking and why
-- Generates better reports with context
+- Generates detailed reports
 
 **Performance:**
-- 60-70% fewer tokens used
+- 60-70% fewer tokens
 - 70-80% faster execution
-- 66% less context overhead (1 context vs 3)
-- 60% less hook code
+- Single context (not multiple)
+- Compact hook code
 
 ---
 
----
+## Troubleshooting
 
-## Part 2: Migrating from Legacy Workflows
+### Hook blocks unexpectedly
 
-### Should You Migrate?
+**Check:**
+1. Is `active_tasks` empty when it should have tasks?
+2. Do task codes in `active_tasks` match task file exactly?
+3. Does each task have a QA Status field?
+4. Are any tasks still `[Not Started]`?
 
-**Consider migrating if:**
-- ✅ You want simpler, more reliable QA verification
-- ✅ You want control over when to fix failures
-- ✅ You want to track failed tasks across sessions
-- ✅ You're starting a new feature or project phase
+**Solution:**
+- Set `active_tasks` when starting work
+- Ensure task codes match: `["T001", "T002"]`
+- Add QA Status fields to all tasks
+- Mark verified tasks as `[Passed]` or `[Failed - reason]`
 
-**Stay with legacy if:**
-- ❌ You have in-progress work with the current system
-- ❌ You prefer the existing workflow behavior
-- ❌ You don't want to update your config structure
+### Hook allows stop but you want verification
 
-**Note:** Both systems are fully supported. There's no pressure to migrate.
-
----
-
-### What's Different
-
-| Aspect | Legacy | Current |
-|--------|--------|----------|
-| **Config structure** | `third_party_workflows.detected[]` (array) | `third_party_workflow` (object) |
-| **Active tasks** | Automatic detection | Manual `active_tasks` field |
-| **QA Status values** | [Not Started], [In Progress], [Complete] | [Not Started], [Passed], [Failed - reason] |
-| **Hook complexity** | ~1000+ lines | ~400 lines |
-| **Hook duty** | Run quality checks | Check status only |
-| **Stop with failures** | No (blocks until fixed) | Yes (allows after verification) |
-| **Failed task tracking** | Lost on stop | Preserved in active_tasks |
-| **Agent tools** | Limited | Full access |
-| **Context overhead** | High (3 contexts) | Low (1 context) |
-| **Fix timing** | Immediate (forced) | User's choice |
-
----
-
-### Migration Steps
-
-#### Step 1: Complete In-Progress Work
-
-Before migrating, finish any active features using the legacy workflow.
-
-```bash
-# If you have uncommitted changes
-git add .
-git commit -m "Complete feature X before migration"
-```
-
-#### Step 2: Backup Current Config
-
-```bash
-cp .synapse/config.json .synapse/config.json.backup
-```
-
-#### Step 3: Update Config Structure
-
-**Manual approach:**
-
-1. Read your current `.synapse/config.json`
-2. Find the `third_party_workflows.detected` array
-3. Take the first (or preferred) workflow object
-4. Restructure to single object format
-5. Add `active_tasks: []` field
-6. Save as `third_party_workflow` (singular, object)
-
-**Before:**
-```json
-{
-  "third_party_workflows": {
-    "detected": [
-      {
-        "type": "openspec",
-        "active_tasks_file": "tasks.md",
-        "task_format_schema": {...}
-      }
-    ]
-  }
-}
-```
-
-**After:**
-```json
-{
-  "third_party_workflow": {
-    "type": "openspec",
-    "active_tasks_file": "tasks.md",
-    "active_tasks": [],
-    "task_format_schema": {...}
-  }
-}
-```
-
-#### Step 4: Update Task Format (If Needed)
-
-Check your tasks.md for required format:
-
-```markdown
-[ ] - T001 - Task description
-  [ ] - T001-DS - Dev Status: [Not Started]
-  [ ] - T001-QA - QA Status: [Not Started]
-  [ ] - T001-UV - User Verification Status: [Not Started]
-```
-
-If your tasks don't have codes, use the feature-planning workflow's writer agent to regenerate them.
-
-#### Step 5: Update Workflow References
-
-Update your workflow configuration:
-
-```json
-{
-  "workflows": {
-    "active_workflow": "feature-implementation-v2"
-  }
-}
-```
-
-#### Step 6: Test the New Workflow
-
-1. Create a simple test task
-2. Set `active_tasks` to that task code
-3. Try to stop (should block)
-4. Mark QA Status as `[Passed]`
-5. Try to stop (should allow)
-6. Clear `active_tasks`
-
-#### Step 7: Learn the New Workflow
-
-Read:
-- `resources/workflows/feature-implementation-v2/README.md`
-- `resources/workflows/feature-planning/README.md`
-
-Understand:
-- When to set `active_tasks`
-- How to handle failures
-- Exit code meanings
-- Three-category QA Status system
-
----
-
-### Common Migration Issues
-
-#### Issue: Hook blocks but I cleared active_tasks
-
-**Cause:** `active_tasks` still has task codes
-
-**Fix:**
-```json
-{
-  "third_party_workflow": {
-    "active_tasks": []  // Must be empty array, not [""]
-  }
-}
-```
-
-#### Issue: Hook allows stop but I want verification
-
-**Cause:** QA Status is `[Failed - ...]` (which allows stop in current system)
+**Cause:** QA Status is `[Failed - ...]` (which allows stop)
 
 **Fix:** Set QA Status to `[Not Started]` if you want the hook to block
 
-#### Issue: Task codes not found
+### Task codes not found
 
 **Cause:** Mismatch between `active_tasks` codes and task file codes
 
-**Fix:** Ensure codes match exactly:
+**Fix:**
 ```json
 "active_tasks": ["T001", "T002"]  // Must match task file exactly
 ```
 
-#### Issue: Schema parsing errors
+### Schema parsing errors
 
 **Cause:** Task format doesn't match schema patterns
 
@@ -499,116 +322,31 @@ Understand:
 
 ---
 
-### Rollback Plan
+## Getting Help
 
-If you need to rollback:
-
-1. Restore backup config:
-```bash
-cp .synapse/config.json.backup .synapse/config.json
-```
-
-2. Switch back to legacy workflow in settings
-
-3. Continue using `legacy/resources/workflows/`
-
----
-
-### Gradual Migration Options
-
-You don't have to migrate everything at once:
-
-**Option A: Per-feature migration**
-- Use legacy for current feature
-- Use new workflows for next feature
-- Migrate at natural boundaries
-
-**Option B: Hybrid approach**
-- Use feature-planning (works with both)
-- Use legacy feature-implementation for now
-- Switch to new workflows when comfortable
-
-**Option C: Trial run**
-- Create a test branch
-- Try new workflows on that branch
-- Decide based on experience
-
----
-
-### Getting Help
-
-**If migration fails:**
-
-1. Check logs in `.synapse/logs/`
-2. Verify config structure matches schema
-3. Test hook manually: `python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py`
-4. Review troubleshooting section
-
-**Common debugging commands:**
+**Debug commands:**
 
 ```bash
 # Validate config JSON
 python3 -c "import json; json.load(open('.synapse/config.json'))"
 
-# Check hook execution
+# Test hook manually
 python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py
 
-# View hook directive
+# View hook output
 python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&1 | less
 ```
 
----
-
-### Why Migrate?
-
-**Reliability:**
-- Simpler hooks = fewer failure points
-- Schema-driven parsing = flexible formats
-- Clear exit codes = predictable behavior
-
-**Control:**
-- Stop with failures
-- Fix on your schedule
-- Track failed tasks across sessions
-
-**Performance:**
-- 60-70% fewer tokens
-- 70-80% faster execution
-- 66% less context overhead
-
-**Maintainability:**
-- ~400 lines vs 1000+
-- Clear separation: hook checks, agent verifies
-- Easier to debug and extend
-
-**Future-proof:**
-- New features built on current architecture
-- Active development and testing
-- Community feedback incorporated
+**Common fixes:**
+- Check `.synapse/config.json` structure
+- Verify hook paths in `.claude/settings.json`
+- Ensure hooks are executable (`chmod +x`)
+- Review `.synapse/logs/` for errors
 
 ---
 
-## Comparison Summary
+## Further Reading
 
-| Aspect | Legacy | Current |
-|--------|--------|----------|
-| **Philosophy** | Hook does everything | Hook checks, agent verifies |
-| **Complexity** | High (~1000+ lines) | Low (~400 lines) |
-| **User control** | Forced immediate fixes | Choose when to fix |
-| **Failed tasks** | Lost on stop | Tracked across sessions |
-| **Performance** | Slower, high tokens | Faster, low tokens |
-| **Reliability** | Complex, timeout-prone | Simple, robust |
-| **Flexibility** | Rigid format | Schema-driven |
-
----
-
-## Conclusion
-
-The current architecture represents a fundamental improvement based on lessons learned from the legacy implementation. The key insight—"the hook should be dumb, the agent should be smart"—leads to a more reliable, maintainable, and user-friendly system.
-
-Migration is optional but recommended for new work. Both systems will continue to be supported. Choose what works best for your project.
-
-For detailed workflow documentation, see:
-- `resources/workflows/feature-implementation-v2/README.md` - Complete workflow guide
-- `resources/workflows/feature-planning/README.md` - Task planning workflow
-- `resources/README.md` - Quick start guide
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System internals and design decisions
+- [Feature Implementation v2 README](../resources/workflows/feature-implementation-v2/README.md) - Workflow details
+- [Feature Planning README](../resources/workflows/feature-planning/README.md) - Task planning workflow
