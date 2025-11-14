@@ -395,12 +395,10 @@ synapse/
 │   ├── schemas/                 # JSON schemas
 │   ├── settings/                # Config templates
 │   └── workflows/               # Workflow definitions
-├── legacy/                      # Pre-Option 6 code
 ├── tests/                       # Test suite
 │   ├── test_stop_qa_check.py
 │   ├── integration/
-│   ├── e2e/
-│   └── legacy/
+│   └── e2e/
 ├── docs/                        # Documentation
 └── pyproject.toml               # Package configuration
 ```
@@ -519,9 +517,8 @@ tests/
 ├── test_edge_cases.py                 # Edge cases
 ├── integration/
 │   └── test_full_workflow.py          # Full workflow scenarios (6 tests)
-├── e2e/
-│   └── test_full_verification_loop.py # End-to-end tests
-└── legacy/                            # Pre-Option 6 tests
+└── e2e/
+    └── test_full_verification_loop.py # End-to-end tests
 ```
 
 ### Test Categories

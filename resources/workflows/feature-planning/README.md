@@ -6,7 +6,7 @@
 
 This workflow helps break down features into well-structured, actionable tasks with quality gates.
 
-Uses the `writer` sub-agent to create tasks following strict formatting standards compatible with both legacy and Option 6 verification workflows.
+Uses the `writer` sub-agent to create tasks following strict formatting standards compatible with Option 6 verification workflows.
 
 ## Components
 
@@ -284,7 +284,6 @@ Tasks created by this workflow are ready for the feature-implementation-v2 workf
 
 This workflow is compatible with:
 - ✅ Feature-implementation-v2 (Option 6)
-- ✅ Legacy feature-implementation workflow
 - ✅ Any workflow that uses task codes
 
 The validation ensures consistent formatting across all workflows.

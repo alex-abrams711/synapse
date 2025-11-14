@@ -391,7 +391,7 @@ This document provides a detailed, actionable task breakdown for implementing th
 ### ✅ Day 9: Regression Testing
 
 - [ ] **9.1 Run existing test suite**
-  - [ ] Run all legacy tests
+  - [ ] Run all existing tests
   - [ ] Verify 100% pass rate
   - [ ] Check for deprecation warnings in test output
   - [ ] Update tests to use new APIs
