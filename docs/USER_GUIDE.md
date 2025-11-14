@@ -342,7 +342,7 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 
 ### What's Different
 
-| Aspect | Legacy | Option 6 |
+| Aspect | Legacy | Current |
 |--------|--------|----------|
 | **Config structure** | `third_party_workflows.detected[]` (array) | `third_party_workflow` (object) |
 | **Active tasks** | Automatic detection | Manual `active_tasks` field |
@@ -590,7 +590,7 @@ python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&
 
 ## Comparison Summary
 
-| Aspect | Legacy | Option 6 |
+| Aspect | Legacy | Current |
 |--------|--------|----------|
 | **Philosophy** | Hook does everything | Hook checks, agent verifies |
 | **Complexity** | High (~1000+ lines) | Low (~400 lines) |
