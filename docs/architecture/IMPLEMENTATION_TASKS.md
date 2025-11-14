@@ -212,41 +212,41 @@ This document provides a detailed, actionable task breakdown for implementing th
 
 ### ✅ Day 5: Services Layer - Part 2
 
-- [ ] **5.1 Create `services/workflow_service.py`**
-  - [ ] Implement `WorkflowService` class
-    - [ ] `__init__(synapse_version)` - inject all dependencies
-    - [ ] `list_workflows()` method
-    - [ ] `get_workflow_status()` method
-    - [ ] `apply_workflow()` method
-    - [ ] `_apply_workflow_directories()` private method
-    - [ ] `_display_copy_results()` private method
-    - [ ] `_display_merge_results()` private method
-  - [ ] Add `get_workflow_service()` factory function
+- [x] **5.1 Create `services/workflow_service.py`**
+  - [x] Implement `WorkflowService` class
+    - [x] `__init__(synapse_version)` - inject all dependencies
+    - [x] `list_workflows()` method
+    - [x] `get_workflow_status()` method
+    - [x] `apply_workflow()` method
+    - [x] `_apply_workflow_directories()` private method
+    - [x] `_display_copy_results()` private method
+    - [x] `_display_merge_results()` private method
+  - [x] Add `get_workflow_service()` factory function
 
-- [ ] **5.2 Create `services/removal_service.py`**
-  - [ ] Implement `RemovalService` class
-    - [ ] `__init__(synapse_version)` - inject dependencies
-    - [ ] `remove_workflow()` method
-    - [ ] `_remove_from_manifest()` private method
-    - [ ] `_display_removal_plan()` private method
-    - [ ] `_confirm_removal()` private method
-    - [ ] `_display_manual_cleanup_instructions()` private method
-  - [ ] Add `get_removal_service()` factory function
+- [x] **5.2 Create `services/removal_service.py`**
+  - [x] Implement `RemovalService` class
+    - [x] `__init__(synapse_version)` - inject dependencies
+    - [x] `remove_workflow()` method
+    - [x] `_remove_from_manifest()` private method
+    - [x] `_display_removal_plan()` private method
+    - [x] `_confirm_removal()` private method
+    - [x] `_display_manual_cleanup_instructions()` private method
+  - [x] Add `get_removal_service()` factory function
 
-- [ ] **5.3 Write unit tests for services - part 2**
-  - [ ] Create `tests/unit/services/test_workflow_service.py`
-    - [ ] Test list_workflows()
-    - [ ] Test get_workflow_status()
-    - [ ] Test apply_workflow() success path
-    - [ ] Test apply_workflow() error handling
-    - [ ] Mock all dependencies
-  - [ ] Create `tests/unit/services/test_removal_service.py`
-    - [ ] Test remove_workflow() with backup
-    - [ ] Test remove_workflow() with manifest
-    - [ ] Test _remove_from_manifest()
-    - [ ] Mock dependencies
-  - [ ] Verify >90% coverage
-  - [ ] Run tests: `pytest tests/unit/services/ -v --cov=src/synapse_cli/services`
+- [x] **5.3 Write unit tests for services - part 2**
+  - [x] Create `tests/unit/services/test_workflow_service.py`
+    - [x] Test list_workflows()
+    - [x] Test get_workflow_status()
+    - [x] Test apply_workflow() success path
+    - [x] Test apply_workflow() error handling
+    - [x] Mock all dependencies
+  - [x] Create `tests/unit/services/test_removal_service.py`
+    - [x] Test remove_workflow() with backup
+    - [x] Test remove_workflow() with manifest
+    - [x] Test _remove_from_manifest()
+    - [x] Mock dependencies
+  - [x] Verify >90% coverage
+  - [x] Run tests: `pytest tests/unit/services/ -v --cov=src/synapse_cli/services`
 
 - [ ] **5.4 Write integration tests**
   - [ ] Create `tests/integration/test_workflow_application.py`
