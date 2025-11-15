@@ -110,6 +110,46 @@ This allows Synapse to work seamlessly alongside other workflow management syste
 
 ## Architecture
 
+Synapse follows a clean layered architecture with clear separation of concerns:
+
+### Modular Architecture
+
+**CLI Layer** (`cli.py`)
+- Entry point using Click for command parsing
+- Routes commands to appropriate handlers
+- Handles global options and error presentation
+
+**Commands Layer** (`commands/`)
+- `init.py` - Project initialization command handler
+- `workflow.py` - Workflow management command handlers (list, status, apply, remove)
+- Thin layer that coordinates services and presents results
+
+**Services Layer** (`services/`)
+- `workflow_service.py` - Core workflow application, removal, and status logic
+- `settings_service.py` - Settings merging and management
+- `validation_service.py` - Workflow validation and verification
+- `removal_service.py` - Cleanup and rollback operations
+- Contains business logic, orchestrates infrastructure components
+
+**Infrastructure Layer** (`infrastructure/`)
+- `config_store.py` - Config file reading/writing with schema validation
+- `manifest_store.py` - Manifest tracking for applied workflows
+- `backup_manager.py` - Backup creation and restoration
+- `file_operations.py` - Safe file copying with validation
+- `resources.py` - Workflow resource discovery and loading
+- `persistence.py` - Generic file I/O operations
+- Low-level operations, no business logic
+
+**Core Layer** (`core/`)
+- `models.py` - Data models (WorkflowManifest, ConfigFile, etc.)
+- `types.py` - Type definitions and constants
+- Shared domain models used across all layers
+
+**Parsers Layer** (`parsers/`)
+- `task_schema_parser.py` - Third-party task format detection
+- `schema_generator.py` - Schema generation from task files
+- `schema_validator.py` - Schema validation logic
+
 ### Workflow System
 
 Synapse uses a simplified two-stage verification approach:
@@ -121,6 +161,28 @@ Synapse applies workflow-specific configurations through:
 - **Settings Merging**: Combines workflow settings.json with existing `.claude/settings.json`
 - **Tracking**: Maintains workflow manifest in `.synapse/workflow-manifest.json` for precise removal
 - **Backup/Restore**: Creates backups before applying workflows for safe rollback
+
+### Testing Strategy
+
+Synapse includes comprehensive test coverage across three levels:
+
+**Unit Tests** (`tests/unit/`)
+- Test individual components in isolation
+- Mock external dependencies
+- Fast execution, focused on single units of logic
+- Coverage: Commands, services, infrastructure, parsers
+
+**Integration Tests** (`tests/integration/`)
+- Test complete workflows using real services
+- Use temporary directories for file operations
+- Verify interactions between multiple components
+- Coverage: Workflow application, removal, switching
+
+**E2E Tests** (`tests/e2e/`)
+- Test CLI commands via subprocess invocation
+- Simulate actual user interaction
+- Verify end-to-end behavior from CLI to file system
+- Coverage: All CLI commands, error handling, interactive prompts
 
 ### Configuration Schema
 The `.synapse/config.json` file stores project configuration with these key sections:
@@ -153,6 +215,8 @@ The `.synapse/config.json` file stores project configuration with these key sect
 ```
 
 ### Project Structure
+
+**User Project Structure** (created by Synapse):
 ```
 .synapse/                 # Synapse configuration
 ├── config.json         # Project settings and workflow tracking
@@ -165,5 +229,101 @@ The `.synapse/config.json` file stores project configuration with these key sect
 └── settings.json       # Claude Code hook configuration
 ```
 
+**Synapse Codebase Structure**:
+```
+src/synapse_cli/
+├── cli.py                      # CLI entry point
+├── __main__.py                 # Python module entry
+├── commands/                   # Command handlers
+│   ├── init.py                # Init command
+│   └── workflow.py            # Workflow commands
+├── services/                   # Business logic layer
+│   ├── workflow_service.py    # Workflow operations
+│   ├── settings_service.py    # Settings management
+│   ├── validation_service.py  # Validation logic
+│   └── removal_service.py     # Cleanup operations
+├── infrastructure/             # Low-level operations
+│   ├── config_store.py        # Config persistence
+│   ├── manifest_store.py      # Manifest tracking
+│   ├── backup_manager.py      # Backup/restore
+│   ├── file_operations.py     # File copying
+│   ├── resources.py           # Resource loading
+│   └── persistence.py         # Generic I/O
+├── core/                       # Domain models
+│   ├── models.py              # Data classes
+│   └── types.py               # Type definitions
+└── parsers/                    # Schema parsing
+    ├── task_schema_parser.py  # Task detection
+    ├── schema_generator.py    # Schema generation
+    └── schema_validator.py    # Validation
+
+resources/workflows/            # Workflow templates
+├── feature-implementation-v2/  # QA workflow
+│   ├── hooks/                 # Stop, PreToolUse, PostToolUse
+│   ├── commands/              # Slash commands
+│   └── settings.json          # Hook configuration
+└── feature-planning/          # Planning workflow
+    ├── hooks/
+    ├── commands/
+    └── settings.json
+
+tests/
+├── unit/                      # Unit tests (mocked dependencies)
+├── integration/               # Integration tests (real services)
+└── e2e/                       # End-to-end CLI tests
+```
+
 That's it. Claude Code automatically detects and uses the `.synapse/` directory for enhanced AI-assisted development with quality enforcement and third-party workflow awareness.
+
+## Development
+
+### Running Tests
+
+Synapse includes 42 comprehensive tests across three levels:
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test levels
+pytest tests/unit/           # Unit tests (16 tests)
+pytest tests/integration/    # Integration tests (11 tests)
+pytest tests/e2e/           # E2E tests (15 tests)
+
+# Run with coverage
+pytest --cov=src/synapse_cli --cov-report=html
+
+# Run specific test file
+pytest tests/unit/commands/test_workflow.py -v
+```
+
+### Architectural Principles
+
+The codebase follows these design principles:
+
+1. **Layered Architecture**: Clear separation between CLI, Commands, Services, and Infrastructure
+2. **Dependency Direction**: Dependencies flow downward (CLI → Commands → Services → Infrastructure → Core)
+3. **Single Responsibility**: Each module has one clear purpose
+4. **Testability**: Services and infrastructure are easily mockable for unit tests
+5. **Type Safety**: Full type hints throughout the codebase
+6. **Immutability**: Data models use frozen dataclasses where appropriate
+
+### Contributing Guidelines
+
+When adding new features:
+
+1. **Follow the layers**: Put code in the appropriate layer
+   - Business logic → Services
+   - File operations → Infrastructure
+   - Command handling → Commands
+   - Data structures → Core
+
+2. **Write tests at all levels**:
+   - Unit tests for isolated logic
+   - Integration tests for workflows
+   - E2E tests for user-facing commands
+
+3. **Maintain type safety**: Add type hints to all functions
+
+4. **Update documentation**: Keep README and docstrings current
 
