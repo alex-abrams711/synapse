@@ -3,25 +3,9 @@
 import pytest
 from pathlib import Path
 from unittest.mock import Mock
-from dataclasses import dataclass
 
 from synapse_cli.commands.workflow import WorkflowCommand
 from synapse_cli.core.models import WorkflowInfo, WorkflowManifest
-from synapse_cli.core.types import WorkflowMode
-
-
-@dataclass
-class MockWorkflowStatus:
-    """Mock workflow status for testing."""
-    has_active_workflow: bool
-    active_workflow: str = None
-    workflow_history: list = None
-    manifest: WorkflowManifest = None
-    has_inconsistency: bool = False
-
-    def __post_init__(self):
-        if self.workflow_history is None:
-            self.workflow_history = []
 
 
 class TestWorkflowCommand:
@@ -96,7 +80,11 @@ class TestWorkflowCommand:
 
     def test_status_no_active_workflow(self, workflow_command, mock_workflow_service, capsys):
         """Test status when no active workflow exists."""
-        mock_status = MockWorkflowStatus(has_active_workflow=False)
+        mock_status = {
+            'active_workflow': None,
+            'applied_workflows': [],
+            'manifest': None
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status()
@@ -121,14 +109,13 @@ class TestWorkflowCommand:
             settings_updated=["someKey"]
         )
 
-        mock_status = MockWorkflowStatus(
-            has_active_workflow=True,
-            active_workflow="feature-planning",
-            workflow_history=[
+        mock_status = {
+            'active_workflow': "feature-planning",
+            'applied_workflows': [
                 {"name": "feature-planning", "applied_at": "2024-01-01T00:00:00"}
             ],
-            manifest=mock_manifest
-        )
+            'manifest': mock_manifest
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status()
@@ -150,12 +137,11 @@ class TestWorkflowCommand:
             settings_updated=[]
         )
 
-        mock_status = MockWorkflowStatus(
-            has_active_workflow=True,
-            active_workflow="workflow-b",
-            manifest=mock_manifest,
-            has_inconsistency=True
-        )
+        mock_status = {
+            'active_workflow': "workflow-b",
+            'applied_workflows': [],
+            'manifest': mock_manifest
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status()
@@ -167,11 +153,11 @@ class TestWorkflowCommand:
 
     def test_status_without_manifest(self, workflow_command, mock_workflow_service, capsys):
         """Test status when manifest doesn't exist."""
-        mock_status = MockWorkflowStatus(
-            has_active_workflow=True,
-            active_workflow="feature-planning",
-            manifest=None
-        )
+        mock_status = {
+            'active_workflow': "feature-planning",
+            'applied_workflows': [],
+            'manifest': None
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status()
@@ -182,7 +168,11 @@ class TestWorkflowCommand:
 
     def test_status_with_target_dir(self, workflow_command, mock_workflow_service, tmp_path):
         """Test status with specific target directory."""
-        mock_status = MockWorkflowStatus(has_active_workflow=False)
+        mock_status = {
+            'active_workflow': None,
+            'applied_workflows': [],
+            'manifest': None
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status(tmp_path)
@@ -273,11 +263,13 @@ class TestWorkflowCommand:
             settings_updated=[]
         )
 
-        mock_status = MockWorkflowStatus(
-            has_active_workflow=True,
-            active_workflow="feature-planning",
-            manifest=mock_manifest
-        )
+        mock_status = {
+            'active_workflow': "feature-planning",
+            'applied_workflows': [
+                {"name": "feature-planning", "applied_at": "2024-01-01T00:00:00"}
+            ],
+            'manifest': mock_manifest
+        }
         mock_workflow_service.get_workflow_status.return_value = mock_status
 
         workflow_command.status()

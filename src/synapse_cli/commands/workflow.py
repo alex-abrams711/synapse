@@ -73,7 +73,10 @@ class WorkflowCommand:
         workflow_status = self.workflow_service.get_workflow_status(target_dir)
 
         # Check if we have any workflow information
-        if not workflow_status.has_active_workflow:
+        active_workflow = workflow_status.get('active_workflow')
+        manifest = workflow_status.get('manifest')
+
+        if not active_workflow and not manifest:
             print("No active workflow found.")
             print("\nTo apply a workflow, use:")
             print("  synapse workflow <name>")
@@ -85,19 +88,19 @@ class WorkflowCommand:
         print("=" * 60)
 
         # Show active workflow
-        if workflow_status.active_workflow:
-            print(f"\nActive Workflow: {workflow_status.active_workflow}")
+        if active_workflow:
+            print(f"\nActive Workflow: {active_workflow}")
 
         # Show workflow history
-        if workflow_status.workflow_history:
-            print(f"\nWorkflow History ({len(workflow_status.workflow_history)} applied):")
+        applied_workflows = workflow_status.get('applied_workflows', [])
+        if applied_workflows:
+            print(f"\nWorkflow History ({len(applied_workflows)} applied):")
             print("-" * 60)
-            for entry in workflow_status.workflow_history:
+            for entry in applied_workflows:
                 print(f"  {entry['name']} (applied: {entry['applied_at']})")
 
         # Show detailed manifest information
-        if workflow_status.manifest:
-            manifest = workflow_status.manifest
+        if manifest:
             print("\n" + "=" * 60)
             print("Detailed Workflow Artifacts")
             print("=" * 60)
@@ -150,12 +153,11 @@ class WorkflowCommand:
             print("Detailed artifact tracking is not available.")
 
         # Warn if config and manifest are out of sync
-        if workflow_status.has_inconsistency:
+        if active_workflow and manifest and active_workflow != manifest.workflow_name:
             print("\n" + "=" * 60)
             print("WARNING: Workflow tracking inconsistency detected!")
-            if workflow_status.active_workflow and workflow_status.manifest:
-                print(f"  Config shows: {workflow_status.active_workflow}")
-                print(f"  Manifest shows: {workflow_status.manifest.workflow_name}")
+            print(f"  Config shows: {active_workflow}")
+            print(f"  Manifest shows: {manifest.workflow_name}")
             print("  Consider re-applying the workflow to fix this.")
 
         print("\n" + "=" * 60)
