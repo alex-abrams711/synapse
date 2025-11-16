@@ -110,7 +110,7 @@ Test fixtures are located in `tests/fixtures/`:
 ## Configuration References
 
 Tests reference the current workflow configuration:
-- **Workflow**: `resources/workflows/feature-implementation-v2/`
+- **Workflow**: `resources/workflows/feature-implementation/`
 - **Config structure**: `.synapse/config.json` with `third_party_workflow` object
 - **QA Status values**: `[Not Started]`, `[Passed]`, `[Complete]`, `[Failed - reason]`
 - **Schema version**: 2.0 (format-agnostic, schema-driven)
@@ -130,6 +130,6 @@ If tests can't find files:
 
 ### Hook Path Issues
 If integration tests fail finding hooks:
-- Hook path: `resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py`
+- Hook path: `resources/workflows/feature-implementation/hooks/stop_qa_check.py`
 - Tests navigate from test file location to project root
 - Check that the workflow directory structure is intact

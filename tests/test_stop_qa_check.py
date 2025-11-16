@@ -113,7 +113,7 @@ class TestStopQACheck:
                 "root_directory": str(project_dir)
             },
             "workflows": {
-                "active_workflow": "feature-implementation-v2"
+                "active_workflow": "feature-implementation"
             },
             "settings": {},
             "quality-config": SAMPLE_QUALITY_CONFIG,
@@ -137,7 +137,7 @@ class TestStopQACheck:
 
     def run_hook(self, project_dir):
         """Run the stop_qa_check.py hook and return exit code and stderr"""
-        hook_path = Path(__file__).parent.parent / "resources" / "workflows" / "feature-implementation-v2" / "hooks" / "stop_qa_check.py"
+        hook_path = Path(__file__).parent.parent / "resources" / "workflows" / "feature-implementation" / "hooks" / "stop_qa_check.py"
 
         result = subprocess.run(
             ["python3", str(hook_path)],

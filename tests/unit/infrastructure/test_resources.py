@@ -25,7 +25,7 @@ class TestResourceManager:
                 "1.0"
             )
             self._create_workflow(
-                workflows_dir / "feature-implementation-v2",
+                workflows_dir / "feature-implementation",
                 "Feature Implementation Workflow",
                 "2.0"
             )
@@ -88,7 +88,7 @@ class TestResourceManager:
         assert isinstance(workflows, list)
         assert len(workflows) == 3
         # Should be sorted
-        assert workflows == ['basic-workflow', 'feature-implementation-v2', 'feature-planning']
+        assert workflows == ['basic-workflow', 'feature-implementation', 'feature-planning']
 
     def test_discover_workflows_empty_directory(self, monkeypatch):
         """Test discover_workflows with empty workflows directory."""

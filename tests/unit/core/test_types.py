@@ -97,7 +97,7 @@ class TestManifestDict:
     def test_valid_manifest_dict(self):
         """Test creating a valid ManifestDict."""
         manifest: ManifestDict = {
-            'workflow_name': 'feature-implementation-v2',
+            'workflow_name': 'feature-implementation',
             'applied_at': '2025-01-01T12:00:00',
             'synapse_version': '0.3.0',
             'files_copied': [
@@ -109,7 +109,7 @@ class TestManifestDict:
             'settings_updated': ['workflow_mode']
         }
 
-        assert manifest['workflow_name'] == 'feature-implementation-v2'
+        assert manifest['workflow_name'] == 'feature-implementation'
         assert manifest['applied_at'] == '2025-01-01T12:00:00'
         assert manifest['synapse_version'] == '0.3.0'
         assert len(manifest['files_copied']) == 1

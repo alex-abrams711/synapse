@@ -229,7 +229,7 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 
 ## Hook Architecture
 
-**Stop Hook File:** `resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py`
+**Stop Hook File:** `resources/workflows/feature-implementation/hooks/stop_qa_check.py`
 
 **What it does:**
 1. Load `.synapse/config.json`
@@ -331,10 +331,10 @@ This defense-in-depth approach ensures quality gates can't be bypassed.
 python3 -c "import json; json.load(open('.synapse/config.json'))"
 
 # Test hook manually
-python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py
+python3 resources/workflows/feature-implementation/hooks/stop_qa_check.py
 
 # View hook output
-python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&1 | less
+python3 resources/workflows/feature-implementation/hooks/stop_qa_check.py 2>&1 | less
 ```
 
 **Common fixes:**
@@ -348,5 +348,5 @@ python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py 2>&
 ## Further Reading
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System internals and design decisions
-- [Feature Implementation v2 README](../resources/workflows/feature-implementation-v2/README.md) - Workflow details
+- [Feature Implementation README](../resources/workflows/feature-implementation/README.md) - Workflow details
 - [Feature Planning README](../resources/workflows/feature-planning/README.md) - Task planning workflow

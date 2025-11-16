@@ -1,4 +1,4 @@
-# Feature Implementation Workflow v2 (Option 6)
+# Feature Implementation Workflow (Option 6)
 
 **Simplified QA verification with user control over fix timing**
 

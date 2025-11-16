@@ -37,7 +37,7 @@ class TestFullWorkflow:
                 "root_directory": str(tmp_path)
             },
             "workflows": {
-                "active_workflow": "feature-implementation-v2"
+                "active_workflow": "feature-implementation"
             },
             "settings": {
                 "auto_backup": True,
@@ -154,7 +154,7 @@ class TestFullWorkflow:
 
     def run_hook(self, project_dir):
         """Run the stop_qa_check.py hook"""
-        hook_path = Path(__file__).parent.parent.parent / "resources" / "workflows" / "feature-implementation-v2" / "hooks" / "stop_qa_check.py"
+        hook_path = Path(__file__).parent.parent.parent / "resources" / "workflows" / "feature-implementation" / "hooks" / "stop_qa_check.py"
 
         result = subprocess.run(
             ["python3", str(hook_path)],
