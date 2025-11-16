@@ -149,14 +149,15 @@ class TestStopQACheck:
         return result.returncode, result.stderr
 
     def test_empty_active_tasks(self, temp_project):
-        """Test: Empty active_tasks returns exit 0"""
+        """Test: Empty active_tasks returns exit 2 (blocks stop)"""
         self.create_config(temp_project, active_tasks=[])
         self.create_task_file(temp_project, "")
 
         exit_code, stderr = self.run_hook(temp_project)
 
-        assert exit_code == 0, f"Expected exit 0 for empty active_tasks, got {exit_code}"
-        assert "No active tasks set" in stderr
+        assert exit_code == 2, f"Expected exit 2 for empty active_tasks, got {exit_code}"
+        assert "STOP BLOCKED - No Active Tasks Set" in stderr
+        assert "must set active_tasks" in stderr
 
     def test_task_file_missing(self, temp_project):
         """Test: Task file missing returns exit 2"""
@@ -218,7 +219,7 @@ class TestStopQACheck:
         exit_code, stderr = self.run_hook(temp_project)
 
         assert exit_code == 0, f"Expected exit 0 for all verified, got {exit_code}"
-        assert "All active tasks verified" in stderr
+        assert "QA VERIFICATION COMPLETE" in stderr
 
     def test_all_tasks_verified_with_failures(self, temp_project):
         """Test: All tasks verified (including failures) returns exit 0"""
@@ -236,7 +237,7 @@ class TestStopQACheck:
         exit_code, stderr = self.run_hook(temp_project)
 
         assert exit_code == 0, f"Expected exit 0 for verified failures, got {exit_code}"
-        assert "All active tasks verified" in stderr
+        assert "QA VERIFICATION COMPLETE" in stderr
         assert "verified failure - allows stop" in stderr
 
     def test_some_tasks_not_verified(self, temp_project):

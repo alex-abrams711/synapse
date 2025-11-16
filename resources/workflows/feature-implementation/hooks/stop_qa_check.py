@@ -98,12 +98,25 @@ def extract_workflow_config(config: Dict) -> Tuple[Dict, List[str], str, Dict]:
 def check_edge_cases(active_tasks: List[str], task_file: str) -> None:
     """Check for edge cases that should block stop."""
 
-    # Edge case 1: No active tasks
+    # Edge case 1: No active tasks - BLOCK (must always verify work)
     if not active_tasks:
-        # Generate report for empty active tasks
-        report = generate_no_tasks_report()
-        print(report, file=sys.stderr)
-        sys.exit(1)  # Show message to user
+        print("\n" + "="*70, file=sys.stderr)
+        print("❌ STOP BLOCKED - No Active Tasks Set", file=sys.stderr)
+        print("="*70, file=sys.stderr)
+        print("\nThe active_tasks field in .synapse/config.json is empty.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("This workflow requires that all work be tracked and verified.", file=sys.stderr)
+        print("You must set active_tasks when working on tasks, even if they", file=sys.stderr)
+        print("are already complete, so that quality verification can run.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("To proceed:", file=sys.stderr)
+        print("1. Set active_tasks in .synapse/config.json to the tasks you worked on", file=sys.stderr)
+        print("2. Run quality verification on those tasks", file=sys.stderr)
+        print("3. Update QA Status fields to [Passed] or [Failed - reason]", file=sys.stderr)
+        print("4. Then you can stop successfully", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("="*70, file=sys.stderr)
+        sys.exit(2)  # Block stop - must set active_tasks
 
     # Edge case 2: Task file doesn't exist
     task_file_path = Path(task_file)
@@ -266,28 +279,6 @@ def check_qa_status(
 
     all_verified = len(tasks_needing_verification) == 0
     return all_verified, tasks_needing_verification
-
-
-def generate_no_tasks_report() -> str:
-    """Generate report when no active tasks are set."""
-    lines = []
-    lines.append("")
-    lines.append("="*70)
-    lines.append("✅ QA VERIFICATION COMPLETE - NO ACTIVE TASKS")
-    lines.append("="*70)
-    lines.append("")
-    lines.append("No tasks are currently marked as active in .synapse/config.json.")
-    lines.append("")
-    lines.append("This means either:")
-    lines.append("- No work has been started yet")
-    lines.append("- All previous work has been completed and cleared")
-    lines.append("- The active_tasks field is empty")
-    lines.append("")
-    lines.append("You can safely stop without verification checks.")
-    lines.append("")
-    lines.append("="*70)
-
-    return "\n".join(lines)
 
 
 def generate_success_report(
@@ -523,12 +514,12 @@ def main():
             active_tasks, parsed_tasks, schema, config
         )
         print(success_report, file=sys.stderr)
-        sys.exit(1)  # Show results to user
+        sys.exit(0)  # Allow stop - all tasks verified
     else:
         # Generate and print directive
         directive = generate_verification_directive(tasks_needing_verification, config)
         print(directive, file=sys.stderr)
-        sys.exit(2)
+        sys.exit(2)  # Block stop - verification required
 
 
 if __name__ == "__main__":
