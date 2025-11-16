@@ -313,7 +313,7 @@ class TestCLIWorkflowSwitching:
         # Switch to second workflow (confirm with 'y')
         stdout, stderr, code = run_synapse_cli(
             "workflow",
-            "feature-implementation-v2",
+            "feature-implementation",
             cwd=test_project,
             input_text="y\n"
         )
@@ -325,7 +325,7 @@ class TestCLIWorkflowSwitching:
         with open(manifest_path) as f:
             manifest = json.load(f)
 
-        assert manifest["workflow_name"] == "feature-implementation-v2"
+        assert manifest["workflow_name"] == "feature-implementation"
 
 
 class TestCLIErrorHandling:

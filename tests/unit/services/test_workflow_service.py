@@ -104,6 +104,7 @@ class TestWorkflowService:
 
         workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
         workflow_service.backup_manager.create_backup.return_value = backup_info
+        workflow_service.manifest_store.exists.return_value = False  # No existing workflow
         workflow_service.settings_service.merge_settings_json.return_value = {
             'merged': True,
             'created': False,
@@ -138,6 +139,7 @@ class TestWorkflowService:
 
         workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
         workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service.manifest_store.exists.return_value = False  # No existing workflow
         workflow_service._apply_workflow_directories = Mock(return_value={})
         workflow_service.settings_service.merge_settings_json.return_value = {
             'merged': False,
@@ -154,6 +156,7 @@ class TestWorkflowService:
 
         workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
         workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service.manifest_store.exists.return_value = False  # No existing workflow
         workflow_service.settings_service.merge_settings_json.return_value = {
             'merged': True,
             'created': False,
@@ -272,3 +275,174 @@ class TestWorkflowService:
         service = get_workflow_service("0.3.0")
         assert isinstance(service, WorkflowService)
         assert service.synapse_version == "0.3.0"
+
+    def test_apply_workflow_replaces_existing_hooks(self, workflow_service, temp_dir):
+        """Test apply_workflow removes hooks and files from previous workflow before applying new one."""
+        from synapse_cli.core.models import WorkflowManifest
+        from datetime import datetime
+
+        # Create old workflow files
+        old_hook_file = temp_dir / ".claude" / "hooks" / "old_hook.py"
+        old_agent_file = temp_dir / ".claude" / "agents" / "old_agent.md"
+        old_hook_file.parent.mkdir(parents=True, exist_ok=True)
+        old_agent_file.parent.mkdir(parents=True, exist_ok=True)
+        old_hook_file.write_text("old hook")
+        old_agent_file.write_text("old agent")
+
+        # Setup existing workflow manifest with hooks and files
+        existing_manifest = WorkflowManifest(
+            workflow_name="old-workflow",
+            applied_at=datetime.now(),
+            synapse_version="0.3.0",
+            hooks_added=[
+                {'hook_type': 'Stop', 'command': '/old/hook1.py'},
+                {'hook_type': 'PreToolUse', 'command': '/old/hook2.py'}
+            ],
+            files_copied=[
+                {'path': '.claude/hooks/old_hook.py', 'type': 'hooks'},
+                {'path': '.claude/agents/old_agent.md', 'type': 'agents'}
+            ]
+        )
+
+        workflow_info = WorkflowInfo(name="new-workflow", description="New workflow")
+
+        # Mock dependencies
+        workflow_service.manifest_store.exists.return_value = True
+        workflow_service.manifest_store.load.return_value = existing_manifest
+        workflow_service.settings_service.remove_hooks_from_settings.return_value = True
+        workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
+        workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service._apply_workflow_directories = Mock(return_value={})
+        workflow_service.settings_service.merge_settings_json.return_value = {
+            'merged': True,
+            'created': False,
+            'hooks_added': [{'hook_type': 'Stop', 'command': '/new/hook.py'}],
+            'settings_updated': [],
+            'error': None
+        }
+        workflow_service.manifest_store.save.return_value = True
+        workflow_service.config_store.update_workflow_tracking.return_value = True
+
+        # Apply new workflow
+        result = workflow_service.apply_workflow("new-workflow", temp_dir)
+
+        # Verify old hooks were removed from settings
+        assert result is True
+        workflow_service.manifest_store.exists.assert_called_once_with(temp_dir)
+        workflow_service.manifest_store.load.assert_called_once_with(temp_dir)
+        workflow_service.settings_service.remove_hooks_from_settings.assert_called_once_with(
+            existing_manifest.hooks_added,
+            temp_dir
+        )
+
+        # Verify old files were removed
+        assert not old_hook_file.exists(), "Old hook file should be removed"
+        assert not old_agent_file.exists(), "Old agent file should be removed"
+
+        # Verify cleanup_empty_directories was called
+        workflow_service.file_ops.cleanup_empty_directories.assert_called_once()
+
+    def test_apply_workflow_no_existing_manifest(self, workflow_service, temp_dir):
+        """Test apply_workflow when no existing workflow manifest exists."""
+        workflow_info = WorkflowInfo(name="new-workflow", description="New workflow")
+
+        # Mock dependencies - no existing manifest
+        workflow_service.manifest_store.exists.return_value = False
+        workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
+        workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service._apply_workflow_directories = Mock(return_value={})
+        workflow_service.settings_service.merge_settings_json.return_value = {
+            'merged': True,
+            'created': False,
+            'hooks_added': [],
+            'settings_updated': [],
+            'error': None
+        }
+        workflow_service.manifest_store.save.return_value = True
+        workflow_service.config_store.update_workflow_tracking.return_value = True
+
+        # Apply workflow
+        result = workflow_service.apply_workflow("new-workflow", temp_dir)
+
+        # Verify no hook removal attempted
+        assert result is True
+        workflow_service.manifest_store.exists.assert_called_once_with(temp_dir)
+        workflow_service.settings_service.remove_hooks_from_settings.assert_not_called()
+
+    def test_apply_workflow_existing_manifest_no_hooks(self, workflow_service, temp_dir):
+        """Test apply_workflow when existing manifest has no hooks."""
+        from synapse_cli.core.models import WorkflowManifest
+        from datetime import datetime
+
+        # Existing manifest with no hooks
+        existing_manifest = WorkflowManifest(
+            workflow_name="old-workflow",
+            applied_at=datetime.now(),
+            synapse_version="0.3.0",
+            hooks_added=[]  # No hooks
+        )
+
+        workflow_info = WorkflowInfo(name="new-workflow", description="New workflow")
+
+        # Mock dependencies
+        workflow_service.manifest_store.exists.return_value = True
+        workflow_service.manifest_store.load.return_value = existing_manifest
+        workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
+        workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service._apply_workflow_directories = Mock(return_value={})
+        workflow_service.settings_service.merge_settings_json.return_value = {
+            'merged': True,
+            'created': False,
+            'hooks_added': [],
+            'settings_updated': [],
+            'error': None
+        }
+        workflow_service.manifest_store.save.return_value = True
+        workflow_service.config_store.update_workflow_tracking.return_value = True
+
+        # Apply workflow
+        result = workflow_service.apply_workflow("new-workflow", temp_dir)
+
+        # Verify no hook removal attempted (manifest exists but has no hooks)
+        assert result is True
+        workflow_service.settings_service.remove_hooks_from_settings.assert_not_called()
+
+    def test_apply_workflow_hook_removal_fails(self, workflow_service, temp_dir, capsys):
+        """Test apply_workflow continues even if hook removal fails."""
+        from synapse_cli.core.models import WorkflowManifest
+        from datetime import datetime
+
+        # Setup existing workflow manifest with hooks
+        existing_manifest = WorkflowManifest(
+            workflow_name="old-workflow",
+            applied_at=datetime.now(),
+            synapse_version="0.3.0",
+            hooks_added=[{'hook_type': 'Stop', 'command': '/old/hook.py'}]
+        )
+
+        workflow_info = WorkflowInfo(name="new-workflow", description="New workflow")
+
+        # Mock dependencies - hook removal fails
+        workflow_service.manifest_store.exists.return_value = True
+        workflow_service.manifest_store.load.return_value = existing_manifest
+        workflow_service.settings_service.remove_hooks_from_settings.return_value = False  # Fails
+        workflow_service.resource_manager.get_workflow_info.return_value = workflow_info
+        workflow_service.backup_manager.create_backup.return_value = None
+        workflow_service._apply_workflow_directories = Mock(return_value={})
+        workflow_service.settings_service.merge_settings_json.return_value = {
+            'merged': True,
+            'created': False,
+            'hooks_added': [],
+            'settings_updated': [],
+            'error': None
+        }
+        workflow_service.manifest_store.save.return_value = True
+        workflow_service.config_store.update_workflow_tracking.return_value = True
+
+        # Apply workflow
+        result = workflow_service.apply_workflow("new-workflow", temp_dir)
+
+        # Verify it continues despite hook removal failure (prints warning)
+        assert result is True
+        captured = capsys.readouterr()
+        assert "⚠" in captured.out or "Warning" in captured.err

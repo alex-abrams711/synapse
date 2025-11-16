@@ -9,7 +9,7 @@ resources/
 ├── schemas/
 │   └── synapse-config-schema.json         # Config validation schema
 ├── workflows/
-│   ├── feature-implementation-v2/         # Option 6 implementation workflow
+│   ├── feature-implementation/         # Option 6 implementation workflow
 │   │   ├── hooks/
 │   │   │   ├── stop_qa_check.py          # Simple QA status checker (~400 lines)
 │   │   │   └── user-prompt-reminder.sh   # Active tasks management reminder
@@ -28,7 +28,7 @@ resources/
 
 ## Workflows
 
-### Feature Implementation v2
+### Feature Implementation
 
 **Purpose:** Simplified QA verification with user control
 
@@ -40,7 +40,7 @@ resources/
 
 **Use when:** Implementing features with quality verification
 
-**Documentation:** [workflows/feature-implementation-v2/README.md](workflows/feature-implementation-v2/README.md)
+**Documentation:** [workflows/feature-implementation/README.md](workflows/feature-implementation/README.md)
 
 ### Feature Planning
 
@@ -90,7 +90,7 @@ Result: Formatted tasks with codes in `tasks.md`
 
 ### 3. Implement Features
 
-Use the feature-implementation-v2 workflow:
+Use the feature-implementation workflow:
 
 1. Set `active_tasks` in config when starting work
 2. Implement tasks
@@ -250,7 +250,7 @@ pytest tests/integration/test_full_workflow.py -v
 - Schema errors → Validate regex patterns
 
 **Resources:**
-- [Feature Implementation v2 README](workflows/feature-implementation-v2/README.md)
+- [Feature Implementation README](workflows/feature-implementation/README.md)
 - [Feature Planning README](workflows/feature-planning/README.md)
 - [Migration Guide](../MIGRATION_GUIDE.md)
 

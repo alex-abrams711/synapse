@@ -145,7 +145,7 @@ class TestWorkflowApplication:
         # Try to apply second workflow - should exit during validation
         with pytest.raises(SystemExit):
             workflow_service.apply_workflow(
-                "feature-implementation-v2",
+                "feature-implementation",
                 target_dir=test_project_dir,
                 force=False
             )
@@ -280,7 +280,7 @@ class TestWorkflowSwitching:
 
         # Apply second workflow
         success = workflow_service.apply_workflow(
-            "feature-implementation-v2",
+            "feature-implementation",
             target_dir=test_project_dir,
             force=False
         )
@@ -289,7 +289,7 @@ class TestWorkflowSwitching:
 
         # Verify new workflow is active
         config_store = ConfigStore()
-        assert config_store.get_active_workflow(test_project_dir) == "feature-implementation-v2"
+        assert config_store.get_active_workflow(test_project_dir) == "feature-implementation"
 
     def test_switch_preserves_workflow_history(self, test_project_dir, workflow_service, monkeypatch):
         """Test that switching workflows preserves history."""
@@ -310,13 +310,13 @@ class TestWorkflowSwitching:
 
         # Switch to second workflow
         workflow_service.apply_workflow(
-            "feature-implementation-v2",
+            "feature-implementation",
             target_dir=test_project_dir,
             force=False
         )
 
         # Verify second workflow is now active
-        assert config_store.get_active_workflow(test_project_dir) == "feature-implementation-v2"
+        assert config_store.get_active_workflow(test_project_dir) == "feature-implementation"
 
         # Verify both workflows have manifests (one after another shows switching worked)
         manifest_path = test_project_dir / ".synapse" / "workflow-manifest.json"
@@ -324,7 +324,7 @@ class TestWorkflowSwitching:
             manifest = json.load(f)
 
         # The manifest should reflect the most recent workflow
-        assert manifest["workflow_name"] == "feature-implementation-v2"
+        assert manifest["workflow_name"] == "feature-implementation"
 
     def test_switch_creates_new_manifest(self, test_project_dir, workflow_service, monkeypatch):
         """Test that switching workflows creates a new manifest for the new workflow."""
@@ -348,7 +348,7 @@ class TestWorkflowSwitching:
 
         # Switch workflow
         workflow_service.apply_workflow(
-            "feature-implementation-v2",
+            "feature-implementation",
             target_dir=test_project_dir,
             force=False
         )
@@ -357,5 +357,5 @@ class TestWorkflowSwitching:
         with open(manifest_path) as f:
             second_manifest = json.load(f)
 
-        assert second_manifest["workflow_name"] == "feature-implementation-v2"
+        assert second_manifest["workflow_name"] == "feature-implementation"
         assert second_manifest["applied_at"] != first_manifest["applied_at"]

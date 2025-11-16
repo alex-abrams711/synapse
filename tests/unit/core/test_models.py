@@ -91,7 +91,7 @@ class TestWorkflowManifest:
         """Test creating WorkflowManifest instance."""
         now = datetime.now()
         manifest = WorkflowManifest(
-            workflow_name='feature-implementation-v2',
+            workflow_name='feature-implementation',
             applied_at=now,
             synapse_version='0.3.0',
             files_copied=[{'source': 'tasks.md', 'destination': '.synapse/tasks.md'}],
@@ -99,7 +99,7 @@ class TestWorkflowManifest:
             settings_updated=['workflow_mode']
         )
 
-        assert manifest.workflow_name == 'feature-implementation-v2'
+        assert manifest.workflow_name == 'feature-implementation'
         assert manifest.applied_at == now
         assert manifest.synapse_version == '0.3.0'
         assert len(manifest.files_copied) == 1
@@ -125,7 +125,7 @@ class TestWorkflowManifest:
     def test_from_dict(self):
         """Test WorkflowManifest.from_dict() classmethod."""
         manifest_dict: ManifestDict = {
-            'workflow_name': 'feature-implementation-v2',
+            'workflow_name': 'feature-implementation',
             'applied_at': '2025-01-01T12:00:00',
             'synapse_version': '0.3.0',
             'files_copied': [
@@ -139,7 +139,7 @@ class TestWorkflowManifest:
 
         manifest = WorkflowManifest.from_dict(manifest_dict)
 
-        assert manifest.workflow_name == 'feature-implementation-v2'
+        assert manifest.workflow_name == 'feature-implementation'
         assert manifest.applied_at == datetime(2025, 1, 1, 12, 0, 0)
         assert manifest.synapse_version == '0.3.0'
         assert len(manifest.files_copied) == 1
@@ -167,7 +167,7 @@ class TestWorkflowManifest:
         """Test WorkflowManifest.to_dict() method."""
         now = datetime(2025, 1, 1, 12, 0, 0)
         manifest = WorkflowManifest(
-            workflow_name='feature-implementation-v2',
+            workflow_name='feature-implementation',
             applied_at=now,
             synapse_version='0.3.0',
             files_copied=[{'source': 'tasks.md', 'destination': '.synapse/tasks.md'}],
@@ -177,7 +177,7 @@ class TestWorkflowManifest:
 
         manifest_dict = manifest.to_dict()
 
-        assert manifest_dict['workflow_name'] == 'feature-implementation-v2'
+        assert manifest_dict['workflow_name'] == 'feature-implementation'
         assert manifest_dict['applied_at'] == '2025-01-01T12:00:00'
         assert manifest_dict['synapse_version'] == '0.3.0'
         assert len(manifest_dict['files_copied']) == 1
@@ -187,7 +187,7 @@ class TestWorkflowManifest:
     def test_round_trip(self):
         """Test from_dict() -> to_dict() round trip."""
         original_dict: ManifestDict = {
-            'workflow_name': 'feature-implementation-v2',
+            'workflow_name': 'feature-implementation',
             'applied_at': '2025-01-01T12:00:00',
             'synapse_version': '0.3.0',
             'files_copied': [
@@ -216,13 +216,13 @@ class TestWorkflowInfo:
     def test_instantiation(self):
         """Test creating WorkflowInfo instance."""
         workflow = WorkflowInfo(
-            name='feature-implementation-v2',
+            name='feature-implementation',
             description='Feature implementation workflow',
             version='2.0',
             path=Path('/path/to/workflow')
         )
 
-        assert workflow.name == 'feature-implementation-v2'
+        assert workflow.name == 'feature-implementation'
         assert workflow.description == 'Feature implementation workflow'
         assert workflow.version == '2.0'
         assert workflow.path == Path('/path/to/workflow')
@@ -258,12 +258,12 @@ class TestBackupInfo:
         backup = BackupInfo(
             path=Path('/path/to/backup'),
             created_at=now,
-            workflow_name='feature-implementation-v2'
+            workflow_name='feature-implementation'
         )
 
         assert backup.path == Path('/path/to/backup')
         assert backup.created_at == now
-        assert backup.workflow_name == 'feature-implementation-v2'
+        assert backup.workflow_name == 'feature-implementation'
 
     def test_instantiation_with_defaults(self):
         """Test creating BackupInfo with default values."""

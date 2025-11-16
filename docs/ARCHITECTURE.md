@@ -85,7 +85,7 @@ workflow_status()         # Show active workflow state
 **Location**: `resources/workflows/`
 
 **Available Workflows:**
-- `feature-implementation-v2/` - Option 6 QA verification
+- `feature-implementation/` - Option 6 QA verification
 - `feature-planning/` - Task breakdown and formatting
 
 **Workflow Structure:**
@@ -160,10 +160,10 @@ workflow-name/
     "root_directory": "/absolute/path"
   },
   "workflows": {
-    "active_workflow": "feature-implementation-v2",
+    "active_workflow": "feature-implementation",
     "applied_workflows": [
       {
-        "name": "feature-implementation-v2",
+        "name": "feature-implementation",
         "applied_at": "2024-11-14T10:30:00Z"
       }
     ]
@@ -262,7 +262,7 @@ class ParsedTask:
 ### Workflow Application Flow
 
 ```
-User: synapse workflow feature-implementation-v2
+User: synapse workflow feature-implementation
   │
   ├─> CLI validates preconditions
   │     - .synapse directory exists
@@ -724,7 +724,7 @@ signal.alarm(60)  # 60 second maximum
 Enable verbose logging:
 ```bash
 export SYNAPSE_DEBUG=1
-synapse workflow apply feature-implementation-v2
+synapse workflow apply feature-implementation
 ```
 
 ### Manual Hook Testing
@@ -732,7 +732,7 @@ synapse workflow apply feature-implementation-v2
 Test hooks independently:
 ```bash
 # Test stop hook
-python3 resources/workflows/feature-implementation-v2/hooks/stop_qa_check.py
+python3 resources/workflows/feature-implementation/hooks/stop_qa_check.py
 
 # Check exit code
 echo $?

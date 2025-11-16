@@ -273,7 +273,7 @@ In `settings.json`:
 
 ## Integration with Feature Implementation
 
-Tasks created by this workflow are ready for the feature-implementation-v2 workflow:
+Tasks created by this workflow are ready for the feature-implementation workflow:
 
 1. Feature planning creates tasks with codes
 2. Feature implementation uses task codes in `active_tasks`
@@ -283,7 +283,7 @@ Tasks created by this workflow are ready for the feature-implementation-v2 workf
 ## Compatibility
 
 This workflow is compatible with:
-- ✅ Feature-implementation-v2 (Option 6)
+- ✅ Feature Implementation (Option 6)
 - ✅ Any workflow that uses task codes
 
 The validation ensures consistent formatting across all workflows.

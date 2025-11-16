@@ -56,7 +56,7 @@ synapse workflow list
 
 **Apply a workflow:**
 ```bash
-synapse workflow feature-implementation-v2  # QA verification with quality gates
+synapse workflow feature-implementation  # QA verification with quality gates
 synapse workflow feature-planning           # Task breakdown and planning
 ```
 
@@ -258,7 +258,7 @@ src/synapse_cli/
     └── schema_validator.py    # Validation
 
 resources/workflows/            # Workflow templates
-├── feature-implementation-v2/  # QA workflow
+├── feature-implementation/  # QA workflow
 │   ├── hooks/                 # Stop, PreToolUse, PostToolUse
 │   ├── commands/              # Slash commands
 │   └── settings.json          # Hook configuration

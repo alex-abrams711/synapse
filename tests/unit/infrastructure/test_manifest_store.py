@@ -25,7 +25,7 @@ class TestManifestStore:
     def sample_manifest(self):
         """Create sample manifest for testing."""
         return WorkflowManifest(
-            workflow_name='feature-implementation-v2',
+            workflow_name='feature-implementation',
             applied_at=datetime(2025, 1, 1, 12, 0, 0),
             synapse_version='0.3.0',
             files_copied=[

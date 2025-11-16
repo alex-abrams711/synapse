@@ -146,12 +146,12 @@ class TestConfigStore:
         config_store.save(sample_config, temp_dir)
 
         # Update with different workflow
-        result = config_store.update_workflow_tracking('feature-implementation-v2', temp_dir)
+        result = config_store.update_workflow_tracking('feature-implementation', temp_dir)
         assert result is True
 
         # Load and verify
         config = config_store.load(temp_dir)
-        assert config['workflows']['active_workflow'] == 'feature-implementation-v2'
+        assert config['workflows']['active_workflow'] == 'feature-implementation'
         # Should have both workflows in history
         assert len(config['workflows']['applied_workflows']) == 2
 

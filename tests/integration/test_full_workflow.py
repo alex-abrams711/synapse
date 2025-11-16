@@ -37,7 +37,7 @@ class TestFullWorkflow:
                 "root_directory": str(tmp_path)
             },
             "workflows": {
-                "active_workflow": "feature-implementation-v2"
+                "active_workflow": "feature-implementation"
             },
             "settings": {
                 "auto_backup": True,
@@ -154,7 +154,7 @@ class TestFullWorkflow:
 
     def run_hook(self, project_dir):
         """Run the stop_qa_check.py hook"""
-        hook_path = Path(__file__).parent.parent.parent / "resources" / "workflows" / "feature-implementation-v2" / "hooks" / "stop_qa_check.py"
+        hook_path = Path(__file__).parent.parent.parent / "resources" / "workflows" / "feature-implementation" / "hooks" / "stop_qa_check.py"
 
         result = subprocess.run(
             ["python3", str(hook_path)],
@@ -224,16 +224,17 @@ class TestFullWorkflow:
             with open(sample_project / "tasks.md") as f:
                 print(f"DEBUG: tasks.md content:\n{f.read()}")
         assert exit_code == 0, "Hook should allow - all tasks verified"
-        assert "All active tasks verified" in stderr
+        assert "QA VERIFICATION COMPLETE" in stderr
 
         # Step 5: Agent clears active_tasks
         print("\n=== Step 5: Agent clears active_tasks ===")
         self.update_config(sample_project, [])
 
-        # Step 6: Agent stops successfully
-        print("\n=== Step 6: Agent stops - no active tasks ===")
+        # Step 6: Agent tries to stop - should be blocked (no active tasks is not allowed)
+        print("\n=== Step 6: Agent tries to stop - should be blocked ===")
         exit_code, stderr = self.run_hook(sample_project)
-        assert exit_code == 0, "Hook should allow - no active tasks"
+        assert exit_code == 2, "Hook should block - active_tasks must always be set"
+        assert "STOP BLOCKED - No Active Tasks Set" in stderr
 
     def test_full_workflow_with_failures(self, sample_project):
         """
@@ -303,7 +304,8 @@ class TestFullWorkflow:
         self.update_config(sample_project, [])
 
         exit_code, stderr = self.run_hook(sample_project)
-        assert exit_code == 0, "Hook should allow - no active tasks"
+        assert exit_code == 2, "Hook should block - active_tasks must always be set"
+        assert "STOP BLOCKED - No Active Tasks Set" in stderr
 
     def test_edge_case_task_not_in_file(self, sample_project):
         """
