@@ -1604,6 +1604,20 @@ def workflow_apply(name: str, force: bool = False) -> None:
     else:
         print("  No existing .claude directory found - no backup needed")
 
+    # Check if there's an existing workflow that needs to be cleaned up
+    existing_manifest = load_manifest(target_dir)
+    if existing_manifest:
+        existing_workflow = existing_manifest.get('workflow_name')
+        if existing_workflow and existing_workflow != name:
+            print(f"\nRemoving existing workflow '{existing_workflow}' before applying '{name}'...")
+            if remove_workflow_files_from_manifest(existing_manifest, target_dir):
+                print(f"  ✓ Previous workflow removed successfully")
+            else:
+                print(f"  ⚠ Some files from previous workflow could not be removed")
+                print(f"  Continuing with workflow application...")
+        elif existing_workflow == name:
+            print(f"\nRe-applying workflow '{name}' (same workflow already active)")
+
     print("\nCopying workflow directories...")
 
     # Apply workflow directories to current directory
