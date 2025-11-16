@@ -61,7 +61,7 @@ class RemovalService:
             else:
                 print("  ✗ Backup restoration failed")
 
-        # Fallback to selective removal
+        # Alternative: selective removal using manifest
         if not removal_success and manifest:
             print("\nSelective removal using manifest...")
             if self._remove_from_manifest(manifest, target_dir):
@@ -150,7 +150,7 @@ class RemovalService:
         else:
             print("\nNo backup found")
             if manifest:
-                print("  Will attempt selective removal (fallback)")
+                print("  Will attempt selective removal using manifest")
 
     def _confirm_removal(self) -> bool:
         """Confirm removal with user."""

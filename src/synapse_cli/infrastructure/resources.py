@@ -49,7 +49,7 @@ class ResourceManager:
 
     def _locate_resources(self) -> Path:
         """
-        Locate resources directory with fallback logic.
+        Locate resources directory by checking multiple install locations.
 
         Returns:
             Path to resources directory
