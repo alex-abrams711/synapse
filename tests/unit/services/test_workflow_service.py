@@ -277,11 +277,19 @@ class TestWorkflowService:
         assert service.synapse_version == "0.3.0"
 
     def test_apply_workflow_replaces_existing_hooks(self, workflow_service, temp_dir):
-        """Test apply_workflow removes hooks from previous workflow before applying new one."""
+        """Test apply_workflow removes hooks and files from previous workflow before applying new one."""
         from synapse_cli.core.models import WorkflowManifest
         from datetime import datetime
 
-        # Setup existing workflow manifest with hooks
+        # Create old workflow files
+        old_hook_file = temp_dir / ".claude" / "hooks" / "old_hook.py"
+        old_agent_file = temp_dir / ".claude" / "agents" / "old_agent.md"
+        old_hook_file.parent.mkdir(parents=True, exist_ok=True)
+        old_agent_file.parent.mkdir(parents=True, exist_ok=True)
+        old_hook_file.write_text("old hook")
+        old_agent_file.write_text("old agent")
+
+        # Setup existing workflow manifest with hooks and files
         existing_manifest = WorkflowManifest(
             workflow_name="old-workflow",
             applied_at=datetime.now(),
@@ -289,6 +297,10 @@ class TestWorkflowService:
             hooks_added=[
                 {'hook_type': 'Stop', 'command': '/old/hook1.py'},
                 {'hook_type': 'PreToolUse', 'command': '/old/hook2.py'}
+            ],
+            files_copied=[
+                {'path': '.claude/hooks/old_hook.py', 'type': 'hooks'},
+                {'path': '.claude/agents/old_agent.md', 'type': 'agents'}
             ]
         )
 
@@ -314,7 +326,7 @@ class TestWorkflowService:
         # Apply new workflow
         result = workflow_service.apply_workflow("new-workflow", temp_dir)
 
-        # Verify old hooks were removed
+        # Verify old hooks were removed from settings
         assert result is True
         workflow_service.manifest_store.exists.assert_called_once_with(temp_dir)
         workflow_service.manifest_store.load.assert_called_once_with(temp_dir)
@@ -322,6 +334,13 @@ class TestWorkflowService:
             existing_manifest.hooks_added,
             temp_dir
         )
+
+        # Verify old files were removed
+        assert not old_hook_file.exists(), "Old hook file should be removed"
+        assert not old_agent_file.exists(), "Old agent file should be removed"
+
+        # Verify cleanup_empty_directories was called
+        workflow_service.file_ops.cleanup_empty_directories.assert_called_once()
 
     def test_apply_workflow_no_existing_manifest(self, workflow_service, temp_dir):
         """Test apply_workflow when no existing workflow manifest exists."""

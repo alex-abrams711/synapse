@@ -109,21 +109,49 @@ class WorkflowService:
         else:
             print("  No backup needed")
 
-        # Remove old workflow hooks if replacing existing workflow
+        # Remove old workflow if replacing existing workflow
         print("\nChecking for existing workflow...")
         if self.manifest_store.exists(target_dir):
             existing_manifest = self.manifest_store.load(target_dir)
-            if existing_manifest and existing_manifest.hooks_added:
-                print(f"  Removing {len(existing_manifest.hooks_added)} hook(s) from previous workflow: {existing_manifest.workflow_name}")
-                if self.settings_service.remove_hooks_from_settings(
-                    existing_manifest.hooks_added,
-                    target_dir
-                ):
-                    print("  ✓ Old hooks removed")
-                else:
-                    print("  ⚠ Warning: Could not remove all old hooks", file=sys.stderr)
-            else:
-                print("  No hooks to remove from previous workflow")
+            if existing_manifest:
+                print(f"  Replacing existing workflow: {existing_manifest.workflow_name}")
+
+                # Remove old hooks from settings.json
+                if existing_manifest.hooks_added:
+                    print(f"  Removing {len(existing_manifest.hooks_added)} hook(s) from settings...")
+                    if self.settings_service.remove_hooks_from_settings(
+                        existing_manifest.hooks_added,
+                        target_dir
+                    ):
+                        print("    ✓ Hooks removed from settings")
+                    else:
+                        print("    ⚠ Warning: Could not remove all hooks from settings", file=sys.stderr)
+
+                # Remove old workflow files
+                if existing_manifest.files_copied:
+                    print(f"  Removing {len(existing_manifest.files_copied)} file(s) from previous workflow...")
+                    removed_count = 0
+                    failed_count = 0
+
+                    for file_info in existing_manifest.files_copied:
+                        file_path = Path(file_info['path'])
+                        if not file_path.is_absolute():
+                            file_path = target_dir / file_path
+
+                        if file_path.exists():
+                            try:
+                                file_path.unlink()
+                                removed_count += 1
+                            except IOError:
+                                failed_count += 1
+
+                    if removed_count > 0:
+                        print(f"    ✓ Removed {removed_count} file(s)")
+                    if failed_count > 0:
+                        print(f"    ⚠ Warning: Failed to remove {failed_count} file(s)", file=sys.stderr)
+
+                    # Clean up empty directories
+                    self.file_ops.cleanup_empty_directories(target_dir / ".claude")
         else:
             print("  No existing workflow found")
 
