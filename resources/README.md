@@ -162,19 +162,6 @@ pytest tests/test_stop_qa_check.py -v
 pytest tests/integration/test_full_workflow.py -v
 ```
 
-## Breaking Changes from Legacy
-
-This implementation introduces breaking changes:
-
-1. **Config structure:** `third_party_workflows` (array) → `third_party_workflow` (object)
-2. **Required field:** `active_tasks` must be present
-3. **Single workflow:** One workflow per project (not multiple)
-4. **QA Status values:** New `[Failed - {reason}]` pattern
-
-**Migration:** See [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md)
-
-**Legacy support:** Original workflows preserved in `legacy/resources/`
-
 ## Design Philosophy
 
 **"The hook should be dumb, the agent should be smart."**
@@ -206,18 +193,6 @@ This implementation introduces breaking changes:
 - Updates status fields
 - Handles failures
 - Reports to user
-
-## Comparison with Legacy
-
-| Aspect | Legacy | Option 6 |
-|--------|--------|----------|
-| Hook size | ~1000+ lines | ~400 lines |
-| Hook duty | Run quality checks | Check status |
-| User blocked? | Yes (until pass) | No (after verify) |
-| Failed task tracking | Lost on stop | Preserved |
-| Agent tools | Limited | Full access |
-| Context | None | Full conversation |
-| Fix timing | Immediate | User's choice |
 
 ## Common Workflows
 
@@ -278,7 +253,6 @@ This implementation introduces breaking changes:
 - [Feature Implementation v2 README](workflows/feature-implementation-v2/README.md)
 - [Feature Planning README](workflows/feature-planning/README.md)
 - [Migration Guide](../MIGRATION_GUIDE.md)
-- [Legacy README](../legacy/README.md)
 
 ## Contributing
 
@@ -298,5 +272,3 @@ When adding new workflows to this directory:
 **Status:** Active development, production ready
 
 **Compatibility:** Requires new config structure (see schema)
-
-**Legacy:** Original workflows in `legacy/resources/`

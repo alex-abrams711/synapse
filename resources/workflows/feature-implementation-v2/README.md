@@ -353,51 +353,6 @@ When the hook blocks, it provides a comprehensive directive including:
 4. **Completion Report Format**
    - Template for success reporting
 
-## Benefits Over Legacy
-
-| Aspect | Legacy | Option 6 |
-|--------|--------|----------|
-| Hook complexity | ~1000+ lines | ~400 lines |
-| Hook execution | Runs quality checks | Only checks status |
-| User blocked by failures | Yes | No |
-| Fix timing | Immediate | User's choice |
-| Failed task tracking | Lost on stop | Preserved |
-| Agent tool access | Limited in hook | Full in agent |
-| Context awareness | None | Full conversation |
-
-## Breaking Changes
-
-This workflow requires the new config structure:
-
-**Old:**
-```json
-{
-  "third_party_workflows": {
-    "detected": [/* array of workflows */]
-  }
-}
-```
-
-**New:**
-```json
-{
-  "third_party_workflow": {
-    /* single workflow object */
-    "active_tasks": [],
-    "task_format_schema": {/*...*/}
-  }
-}
-```
-
-## Migration from Legacy
-
-1. Complete any in-progress work with legacy workflow
-2. Run updated sense command to generate new config
-3. Update task format if needed
-4. Switch to feature-implementation-v2 workflow
-
-Legacy workflows remain fully supported in `legacy/resources/`.
-
 ## Testing
 
 Unit tests: `tests/test_stop_qa_check.py` (15 tests)

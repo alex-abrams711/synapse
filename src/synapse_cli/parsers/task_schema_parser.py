@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Schema-driven task parser with validation and fallback."""
+"""Schema-driven task parser with validation."""
 import re
 import sys
 from dataclasses import dataclass
@@ -26,7 +26,7 @@ class SchemaValidationError(Exception):
 
 
 class TaskSchemaParser:
-    """Schema-driven task parser with validation and fallback."""
+    """Schema-driven task parser with validation."""
 
     SUPPORTED_VERSIONS = ["2.0"]
 
@@ -251,7 +251,7 @@ class TaskSchemaParser:
 
     @staticmethod
     def _get_default_schema() -> Dict:
-        """Return default schema for fallback."""
+        """Return default task schema."""
         return {
             "schema_version": "2.0",
             "format_type": "markdown-checklist",

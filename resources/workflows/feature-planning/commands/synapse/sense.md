@@ -145,12 +145,6 @@ Both the `quality-config` and `third_party_workflow` sections should be added to
 }
 ```
 
-**BREAKING CHANGES from Legacy**:
-- `third_party_workflows.detected` (array) → `third_party_workflow` (object)
-- Required fields: `active_tasks_file`, `active_tasks`, `task_format_schema`
-- One workflow per project (not multiple)
-- Task format schema includes Option 6 QA Status patterns
-
 **Important**: Only add the `quality-config` and `third_party_workflow` sections to the existing config.json. Do not modify any other existing sections.
 
 Context:
