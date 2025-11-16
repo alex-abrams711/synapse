@@ -109,6 +109,24 @@ class WorkflowService:
         else:
             print("  No backup needed")
 
+        # Remove old workflow hooks if replacing existing workflow
+        print("\nChecking for existing workflow...")
+        if self.manifest_store.exists(target_dir):
+            existing_manifest = self.manifest_store.load(target_dir)
+            if existing_manifest and existing_manifest.hooks_added:
+                print(f"  Removing {len(existing_manifest.hooks_added)} hook(s) from previous workflow: {existing_manifest.workflow_name}")
+                if self.settings_service.remove_hooks_from_settings(
+                    existing_manifest.hooks_added,
+                    target_dir
+                ):
+                    print("  ✓ Old hooks removed")
+                else:
+                    print("  ⚠ Warning: Could not remove all old hooks", file=sys.stderr)
+            else:
+                print("  No hooks to remove from previous workflow")
+        else:
+            print("  No existing workflow found")
+
         # Copy workflow directories
         print("\nCopying workflow directories...")
         copy_results = self._apply_workflow_directories(
