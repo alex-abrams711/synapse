@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash, Read, Write, Glob, Grep, AskUserQuestion
-description: Analyze project and generate Option 6 configuration for workflows
+description: Analyze project and generate quality configuration for workflows
 ---
 
 The user input can guide you on project type and non-conventional configurations. You **MUST** consider it before proceeding.
@@ -9,7 +9,7 @@ User input:
 
 $ARGUMENTS
 
-# Quality Configuration Setup (Option 6)
+# Quality Configuration Setup
 
 You are tasked with analyzing the current project and adding a comprehensive quality configuration section to the Synapse config file that will be used by the quality gate hooks.
 
@@ -31,7 +31,7 @@ You are tasked with analyzing the current project and adding a comprehensive qua
    - Scan for known workflow frameworks (OpenSpec, GitHub Spec Kit)
    - Discover any tasks.md files across the project
    - Analyze directory structures for workflow patterns
-   - **BREAKING CHANGE**: If multiple workflows detected, ask user to choose ONE (Option 6 supports single workflow only)
+   - **BREAKING CHANGE**: If multiple workflows detected, ask user to choose ONE (Synapse supports single workflow only)
    - If patterns are unclear or ambiguous, ask user for clarification
    - Handle cases where no task management system exists
 
@@ -48,12 +48,12 @@ You are tasked with analyzing the current project and adding a comprehensive qua
    - Read the existing `.synapse/config.json` file
    - Add a `quality-config` section with discovered commands
    - Add a `third_party_workflow` section (SINGULAR, OBJECT) with detected workflow information
-   - Include task_format_schema with Option 6 patterns
+   - Include task_format_schema with three-category QA patterns
    - Include active_tasks field (empty array by default)
    - Add project-appropriate thresholds and settings
    - Save the updated config.json file
 
-## Configuration Schema (Option 6)
+## Configuration Schema
 
 Both the `quality-config` and `third_party_workflow` sections should be added to the existing `.synapse/config.json` file with this structure:
 
@@ -153,7 +153,7 @@ __Lint Levels__:
 - `strict`: Fail on any lint warnings or errors
 - `flexible`: Allow warnings, fail only on errors
 
-__Third-Party Workflow Detection Process (Option 6)__:
+__Third-Party Workflow Detection Process__:
 
 **Phase 1: Known Framework Detection (High Confidence)**
 - **OpenSpec**: Check for `openspec/` directory with `project.md` and `AGENTS.md`

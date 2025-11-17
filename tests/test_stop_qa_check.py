@@ -1,5 +1,5 @@
 """
-Unit tests for stop_qa_check.py hook (Option 6)
+Unit tests for stop_qa_check.py hook
 
 Test coverage:
 1. Empty active_tasks returns exit 0

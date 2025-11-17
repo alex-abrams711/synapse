@@ -6,7 +6,7 @@
 
 This workflow helps break down features into well-structured, actionable tasks with quality gates.
 
-Uses the `writer` sub-agent to create tasks following strict formatting standards compatible with Option 6 verification workflows.
+Uses the `writer` sub-agent to create tasks following strict formatting standards compatible with feature-implementation verification workflows.
 
 ## Components
 
@@ -34,7 +34,7 @@ Call the writer agent with a feature description
 - Subtask codes match parent task (T001-ST001, T001-ST002)
 - Status codes match parent task (T001-DS, T001-QA, T001-UV)
 - All three status fields present (Dev, QA, User Verification)
-- QA Status supports Option 6 values
+- QA Status supports three-category verification (not verified, verified success, verified failure)
 
 **Exit Codes:**
 - `0` - Validation passed
@@ -85,10 +85,10 @@ Call the writer agent with a feature description
 - `[In Progress]`
 - `[Complete]`
 
-**QA Status (Option 6 compatible):**
+**QA Status:**
 - `[Not Started]` - Not verified
 - `[Passed]` or `[Complete]` - Verified successfully
-- `[Failed - {reason}]` - Verified with failures (Option 6)
+- `[Failed - {reason}]` - Verified with failures
 
 **User Verification Status:**
 - `[Not Started]`
@@ -278,12 +278,12 @@ Tasks created by this workflow are ready for the feature-implementation workflow
 1. Feature planning creates tasks with codes
 2. Feature implementation uses task codes in `active_tasks`
 3. QA verification checks status fields
-4. Option 6 allows flexible failure handling
+4. QA verification allows flexible failure handling
 
 ## Compatibility
 
 This workflow is compatible with:
-- ✅ Feature Implementation (Option 6)
+- ✅ Feature Implementation
 - ✅ Any workflow that uses task codes
 
 The validation ensures consistent formatting across all workflows.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Stop Hook - QA Verification Check (Option 6)
+Stop Hook - QA Verification Check
 
 Simple hook that ONLY checks QA status of active tasks.
 Does NOT run quality checks - that's the agent's job.
