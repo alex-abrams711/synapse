@@ -23,7 +23,7 @@ Synapse is an AI-first workflow system that integrates with Claude Code to provi
 
 ### Core Value Proposition
 
-- **Simplified QA Verification**: Option 6 architecture with "dumb hooks, smart agent" approach
+- **Simplified QA Verification**: "Dumb hooks, smart agent" approach
 - **Quality Gate Enforcement**: Multi-layer protection preventing work bypass
 - **Schema-Driven Flexibility**: Format-agnostic task parsing
 - **User Control**: Stop with failures, fix on your schedule
@@ -85,7 +85,7 @@ workflow_status()         # Show active workflow state
 **Location**: `resources/workflows/`
 
 **Available Workflows:**
-- `feature-implementation/` - Option 6 QA verification
+- `feature-implementation/` - QA verification with user-controlled fix timing
 - `feature-planning/` - Task breakdown and formatting
 
 **Workflow Structure:**
@@ -511,7 +511,7 @@ synapse/
 
 ```
 tests/
-├── test_stop_qa_check.py              # Option 6: Stop hook tests (15 tests)
+├── test_stop_qa_check.py              # Stop hook tests (15 tests)
 ├── test_schema_generator.py           # Schema generation
 ├── test_task_schema_parser.py         # Parser tests
 ├── test_edge_cases.py                 # Edge cases
@@ -526,7 +526,6 @@ tests/
 **Pytest Markers**:
 ```python
 markers = [
-    "option6: Tests for Option 6 implementation",
     "shared: Tests for shared infrastructure",
     "integration: Integration tests",
 ]
@@ -568,14 +567,11 @@ markers = [
 # All tests
 pytest tests/
 
-# Option 6 only
+# Stop hook tests only
 pytest tests/test_stop_qa_check.py -v
 
 # With coverage
 pytest tests/ --cov=resources --cov=synapse_cli --cov-report=html
-
-# Specific marker
-pytest tests/ -m option6
 ```
 
 ---

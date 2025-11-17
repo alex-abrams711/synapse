@@ -150,13 +150,13 @@ def validate_task_format(file_path: str) -> Tuple[bool, List[str]]:
                 )
                 continue
 
-            # Check for QA Status (Option 6: supports Failed - {reason} pattern)
+            # Check for QA Status (supports Failed - {reason} pattern)
             qa_match = qa_status_pattern.match(line_stripped)
             if qa_match:
                 current_task_has_qa = True
                 qa_status_value = qa_match.group(3)
 
-                # Option 6 QA Status validation - allow Failed - {reason} pattern
+                # QA Status validation - allow Failed - {reason} pattern
                 valid_qa_statuses = ['Not Started', 'Passed', 'Complete']
                 is_valid_qa = (
                     qa_status_value in valid_qa_statuses or

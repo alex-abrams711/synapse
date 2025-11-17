@@ -1,6 +1,6 @@
-# Synapse Workflows (Option 6)
+# Synapse Workflows
 
-This directory contains the new Option 6 implementation of Synapse workflows, featuring simplified QA verification and user-controlled fix timing.
+This directory contains Synapse workflows, featuring simplified QA verification and user-controlled fix timing.
 
 ## Directory Structure
 
@@ -9,7 +9,7 @@ resources/
 ├── schemas/
 │   └── synapse-config-schema.json         # Config validation schema
 ├── workflows/
-│   ├── feature-implementation/         # Option 6 implementation workflow
+│   ├── feature-implementation/         # QA verification workflow
 │   │   ├── hooks/
 │   │   │   ├── stop_qa_check.py          # Simple QA status checker (~400 lines)
 │   │   │   └── user-prompt-reminder.sh   # Active tasks management reminder
@@ -119,7 +119,7 @@ Use the feature-implementation workflow:
 - Block if any task is `[Not Started]`
 - Allow if all tasks are verified
 
-### QA Status Semantics (Option 6)
+### QA Status Semantics
 
 ```
 [Not Started]        → NOT VERIFIED → Hook blocks
@@ -153,7 +153,7 @@ Tasks use codes for tracking:
 
 **Integration tests:** `tests/integration/test_full_workflow.py`
 - 6 full workflow scenarios
-- Option 6 behavior verification
+- QA verification behavior
 - Fix-and-reverify cycles
 
 Run tests:
@@ -258,7 +258,7 @@ pytest tests/integration/test_full_workflow.py -v
 
 When adding new workflows to this directory:
 
-1. Follow the Option 6 design philosophy
+1. Follow the "dumb hooks, smart agent" design philosophy
 2. Keep hooks simple and focused
 3. Empower agents with tools and context
 4. Provide clear exit codes and directives
@@ -267,7 +267,7 @@ When adding new workflows to this directory:
 
 ## Version
 
-**Synapse Option 6** - Simplified QA verification with user control
+**Synapse** - Simplified QA verification with user control
 
 **Status:** Active development, production ready
 

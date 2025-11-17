@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Synapse Configuration Schema v2",
-  "description": "Schema for .synapse/config.json file structure (Option 6 implementation)",
+  "description": "Schema for .synapse/config.json file structure",
   "type": "object",
   "required": [
     "synapse_version",
@@ -516,7 +516,7 @@
                     },
                     "qa": {
                       "type": "object",
-                      "description": "QA Status semantic categories (Option 6: three categories)",
+                      "description": "QA Status semantic categories (three categories: not verified, verified success, verified failure)",
                       "required": ["not_verified", "verified_success", "verified_failure_pattern"],
                       "properties": {
                         "not_verified": {

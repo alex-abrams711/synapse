@@ -1,4 +1,4 @@
-# Feature Implementation Workflow (Option 6)
+# Feature Implementation Workflow
 
 **Simplified QA verification with user control over fix timing**
 
@@ -27,7 +27,7 @@ This workflow implements a radically simplified approach to quality verification
 
 **Why this matters:**
 - Old approach: Can't stop until everything passes (stuck in fix loop)
-- Option 6: Can stop after verification regardless of outcome
+- This approach: Can stop after verification regardless of outcome
 - Failed tasks stay tracked until user decides to address them
 
 ## Architecture
@@ -139,7 +139,7 @@ This workflow implements a radically simplified approach to quality verification
    → Stops successfully
 ```
 
-### Example 2: Some Tasks Fail (Option 6 Advantage)
+### Example 2: Some Tasks Fail
 
 ```
 1. Agent starts work on T001, T002, T003

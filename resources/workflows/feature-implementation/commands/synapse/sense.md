@@ -552,7 +552,7 @@ for semantic_field, raw_fields in field_mapping.items():
     for raw_field in raw_fields:
         all_values.update(status_values.get(raw_field, []))
 
-    # Special handling for QA field (Option 6 three-category pattern)
+    # Special handling for QA field (three-category pattern: not_verified, verified_success, verified_failure)
     if semantic_field == 'qa':
         states = {
             'not_verified': [],
@@ -799,6 +799,6 @@ If you are unable to complete the task fully, explain what was done and what is 
 - **CRITICAL**: Only ONE workflow per project - if multiple detected, ask user to choose
 - Always include `active_tasks` field (empty array initially) in `third_party_workflow`
 - Always generate task format schema v2.0 when active tasks file is found
-- For QA Status field, use Option 6 three-category pattern (not_verified, verified_success, verified_failure_pattern)
+- For QA Status field, use three-category pattern (not_verified, verified_success, verified_failure_pattern)
 - **Ensure the resulting JSON is valid and well-formatted**
 - **Always validate the final configuration before reporting success**
