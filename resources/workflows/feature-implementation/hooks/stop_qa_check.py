@@ -35,6 +35,11 @@ signal.alarm(60)
 print("🔍 Stop hook: QA verification check starting...", file=sys.stderr)
 
 
+# Reserved task codes that don't need to exist in tasks.md
+# These are special codes for ad-hoc work that bypass QA verification
+RESERVED_TASK_CODES = {"ADHOC"}
+
+
 def load_config() -> Dict:
     """Load .synapse/config.json"""
     config_path = Path(".synapse/config.json")
@@ -95,7 +100,7 @@ def extract_workflow_config(config: Dict) -> Tuple[Dict, List[str], str, Dict]:
     return workflow, active_tasks, task_file, schema
 
 
-def check_edge_cases(active_tasks: List[str], task_file: str) -> None:
+def check_edge_cases(active_tasks: List[str], task_file: str, non_reserved_tasks: List[str]) -> None:
     """Check for edge cases that should block stop."""
 
     # Edge case 1: No active tasks - BLOCK (must always verify work)
@@ -111,6 +116,8 @@ def check_edge_cases(active_tasks: List[str], task_file: str) -> None:
         print("", file=sys.stderr)
         print("To proceed:", file=sys.stderr)
         print("1. Set active_tasks in .synapse/config.json to the tasks you worked on", file=sys.stderr)
+        print("   - For planned tasks: \"active_tasks\": [\"T001\", \"T002\"]", file=sys.stderr)
+        print("   - For ad-hoc work: \"active_tasks\": [\"ADHOC\"]", file=sys.stderr)
         print("2. Run quality verification on those tasks", file=sys.stderr)
         print("3. Update QA Status fields to [Passed] or [Failed - reason]", file=sys.stderr)
         print("4. Then you can stop successfully", file=sys.stderr)
@@ -118,16 +125,17 @@ def check_edge_cases(active_tasks: List[str], task_file: str) -> None:
         print("="*70, file=sys.stderr)
         sys.exit(2)  # Block stop - must set active_tasks
 
-    # Edge case 2: Task file doesn't exist
-    task_file_path = Path(task_file)
-    if not task_file_path.exists():
-        print("\n" + "="*70, file=sys.stderr)
-        print("❌ STOP BLOCKED - Task File Not Found", file=sys.stderr)
-        print("="*70, file=sys.stderr)
-        print(f"\nTask file '{task_file}' does not exist.", file=sys.stderr)
-        print("Cannot verify active tasks without task file.", file=sys.stderr)
-        print("\n" + "="*70, file=sys.stderr)
-        sys.exit(2)
+    # Edge case 2: Task file doesn't exist (only check if we have non-reserved tasks)
+    if non_reserved_tasks:
+        task_file_path = Path(task_file)
+        if not task_file_path.exists():
+            print("\n" + "="*70, file=sys.stderr)
+            print("❌ STOP BLOCKED - Task File Not Found", file=sys.stderr)
+            print("="*70, file=sys.stderr)
+            print(f"\nTask file '{task_file}' does not exist.", file=sys.stderr)
+            print("Cannot verify active tasks without task file.", file=sys.stderr)
+            print("\n" + "="*70, file=sys.stderr)
+            sys.exit(2)
 
 
 def parse_task_file(task_file: str, schema: Dict) -> Dict[str, Dict]:
@@ -496,22 +504,48 @@ def main():
     # Extract workflow configuration
     workflow, active_tasks, task_file, schema = extract_workflow_config(config)
 
-    # Check edge cases
-    check_edge_cases(active_tasks, task_file)
+    # Filter out reserved task codes (ADHOC, etc.)
+    reserved_tasks = [t for t in active_tasks if t in RESERVED_TASK_CODES]
+    non_reserved_tasks = [t for t in active_tasks if t not in RESERVED_TASK_CODES]
 
-    # Parse task file
+    if reserved_tasks:
+        print(f"ℹ️  Reserved task codes detected: {', '.join(reserved_tasks)}", file=sys.stderr)
+        print("   These will bypass tasks.md validation (ad-hoc work)", file=sys.stderr)
+
+    # Check edge cases
+    check_edge_cases(active_tasks, task_file, non_reserved_tasks)
+
+    # If only reserved tasks (e.g., only ADHOC), allow stop
+    # Agent is trusted to have run quality checks for ad-hoc work
+    if not non_reserved_tasks:
+        print("\n" + "="*70, file=sys.stderr)
+        print("✅ AD-HOC WORK COMPLETE - STOP ALLOWED", file=sys.stderr)
+        print("="*70, file=sys.stderr)
+        print("", file=sys.stderr)
+        print(f"Active tasks: {', '.join(reserved_tasks)}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Ad-hoc work does not require tasks.md tracking.", file=sys.stderr)
+        print("Quality verification is trusted to have been performed by the agent.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("To clear active_tasks, use the Edit tool to update .synapse/config.json", file=sys.stderr)
+        print("and set third_party_workflow.active_tasks to an empty array: []", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("="*70, file=sys.stderr)
+        sys.exit(0)
+
+    # Parse task file (only needed if we have non-reserved tasks)
     parsed_tasks = parse_task_file(task_file, schema)
 
-    # Check QA status
+    # Check QA status (only for non-reserved tasks)
     all_verified, tasks_needing_verification = check_qa_status(
-        active_tasks, parsed_tasks, schema, config
+        non_reserved_tasks, parsed_tasks, schema, config
     )
 
     # Determine exit code
     if all_verified:
         # Generate and print success report
         success_report = generate_success_report(
-            active_tasks, parsed_tasks, schema, config
+            non_reserved_tasks, parsed_tasks, schema, config
         )
         print(success_report, file=sys.stderr)
         sys.exit(0)  # Allow stop - all tasks verified

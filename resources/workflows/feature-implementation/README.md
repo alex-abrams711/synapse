@@ -36,9 +36,11 @@ This workflow implements a radically simplified approach to quality verification
 
 **What it does:**
 - Reads `active_tasks` from config
-- Checks QA Status field for each active task
+- Filters out reserved codes (ADHOC) from validation
+- Checks QA Status field for each non-reserved active task
 - Blocks if ANY task has `[Not Started]`
 - Allows if ALL tasks are verified (including failures)
+- Allows if only reserved codes (e.g., ADHOC) are active
 
 **What it does NOT do:**
 - Run quality checks (agent's job)
@@ -47,8 +49,13 @@ This workflow implements a radically simplified approach to quality verification
 - Make decisions (user's job)
 
 **Exit Codes:**
-- `1` - All active tasks verified (allow stop, show verification report to user)
+- `1` - All active tasks verified OR only reserved codes active (allow stop)
 - `2` - Verification required (block stop, provide directive)
+
+**Reserved Task Handling:**
+- ADHOC and other reserved codes bypass tasks.md validation
+- Agent is trusted to have run quality checks for ad-hoc work
+- Stop hook allows completion without checking tasks.md
 
 ### 2. UserPromptSubmit Hook (`hooks/user-prompt-reminder.sh`)
 
@@ -66,9 +73,14 @@ This workflow implements a radically simplified approach to quality verification
 **What it does:**
 - Intercepts Edit and Write tool calls BEFORE they execute
 - Checks if active_tasks is set in config
+- Recognizes reserved task codes (ADHOC) as valid
 - Identifies "source files" vs "config/docs files"
 - Blocks source file edits if active_tasks is empty
 - Allows config/docs/task file edits without active_tasks
+
+**Reserved Task Codes:**
+- `ADHOC` - For ad-hoc work that doesn't fit existing tasks
+- Reserved codes are valid for active_tasks but don't need to exist in tasks.md
 
 **File Detection Logic:**
 - **Always Allowed** (no active_tasks needed):
@@ -193,6 +205,54 @@ This workflow implements a radically simplified approach to quality verification
    → Stops successfully
 ```
 
+### Example 4: Ad-Hoc Work (ADHOC)
+
+```
+1. Agent is working on T001, finishes it
+   → active_tasks: ["T001"]
+   → T001-QA: [Passed]
+
+2. Agent notices a small typo in a comment (unrelated to T001)
+
+3. Agent sets active_tasks: ["ADHOC"]
+   → ADHOC is a reserved task code
+
+4. Agent fixes the typo
+   → PreToolUse hook allows (active_tasks is set)
+
+5. Agent runs quality checks
+   → All checks pass
+
+6. Agent tries to stop
+   → Stop hook allows (ADHOC bypasses tasks.md validation)
+   → Hook trusts that quality checks were run
+
+7. Agent clears active_tasks: []
+   → Stops successfully
+```
+
+**When to use ADHOC:**
+- Small, unplanned fixes discovered during work
+- Typos, comment updates, minor refactors
+- Quick improvements not worth creating a full task for
+- Any work that should still require quality verification but doesn't fit existing tasks
+
+**ADHOC behavior:**
+- **PreToolUse hook**: Recognizes ADHOC as valid → allows source file edits
+- **Stop hook**: Bypasses tasks.md validation → trusts agent ran quality checks
+- **Still requires**: Quality verification (lint, test, typecheck, coverage, build must pass)
+- **Replaces**: Any currently active tasks (not additive)
+
+**Example ADHOC usage:**
+```json
+{
+  "third_party_workflow": {
+    "active_tasks": ["ADHOC"],  // Reserved code - doesn't need tasks.md entry
+    // ...
+  }
+}
+```
+
 ## Agent Responsibilities
 
 ### Starting Work
@@ -201,7 +261,9 @@ This workflow implements a radically simplified approach to quality verification
 // In .synapse/config.json
 {
   "third_party_workflow": {
-    "active_tasks": ["T001", "T002"],  // Set when starting
+    "active_tasks": ["T001", "T002"],  // For planned tasks
+    // OR
+    "active_tasks": ["ADHOC"],  // For ad-hoc work (reserved code)
     "active_tasks_file": "tasks.md",
     // ...
   }

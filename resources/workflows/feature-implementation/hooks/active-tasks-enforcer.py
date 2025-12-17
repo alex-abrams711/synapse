@@ -34,6 +34,11 @@ signal.alarm(30)
 print("🔍 Active tasks enforcer: Checking if work tracking is enabled...", file=sys.stderr)
 
 
+# Reserved task codes that don't need to exist in tasks.md
+# These are special codes for ad-hoc work that still requires tracking
+RESERVED_TASK_CODES = {"ADHOC"}
+
+
 # File patterns that are considered "source code" requiring active_tasks
 SOURCE_EXTENSIONS = {
     # Programming languages
@@ -215,7 +220,9 @@ def generate_block_message(file_path: str, tool_name: str) -> str:
     lines.append(f"Cannot edit source file: {file_path}")
     lines.append("")
     lines.append("Set active_tasks in .synapse/config.json before editing source code.")
-    lines.append('Example: "active_tasks": ["T001", "T002"]')
+    lines.append("")
+    lines.append('For planned tasks: "active_tasks": ["T001", "T002"]')
+    lines.append('For ad-hoc work:   "active_tasks": ["ADHOC"]')
     lines.append("")
     lines.append("="*70)
 
@@ -254,7 +261,12 @@ def main():
 
     # If active_tasks is set, allow all edits
     if active_tasks:
-        print(f"✅ Active tasks set ({len(active_tasks)} tasks) - allowing edit.", file=sys.stderr)
+        # Check if using reserved codes
+        reserved_in_use = [t for t in active_tasks if t in RESERVED_TASK_CODES]
+        if reserved_in_use:
+            print(f"✅ Active tasks set ({', '.join(active_tasks)}) - allowing edit (ad-hoc work).", file=sys.stderr)
+        else:
+            print(f"✅ Active tasks set ({len(active_tasks)} tasks) - allowing edit.", file=sys.stderr)
         sys.exit(0)
 
     print(f"⚠️  No active tasks set - checking if {file_path} is source file...", file=sys.stderr)
